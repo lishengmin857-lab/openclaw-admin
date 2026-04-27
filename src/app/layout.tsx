@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OpenClaw 后台登录",
-  description: "带互动角色动画的后台登录页与卡密管理后台",
+  title: "OpenClaw 后台管理",
+  description: "OpenClaw 用户、会员、订单与卡密管理后台",
 };
 
 export default function RootLayout({
@@ -27,7 +27,7 @@ export default function RootLayout({
       lang="zh-CN"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full bg-stone-100 text-slate-900">{children}</body>
     </html>
   );
 }

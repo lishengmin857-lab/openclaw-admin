@@ -9,17 +9,17 @@ export function AdminLogin() {
   const router = useRouter();
   const [email, setEmail] = useState(() => {
     if (typeof window === "undefined") {
-      return "admin@openclaw.local";
+      return "15076032131";
     }
 
-    return window.localStorage.getItem("openclaw-admin-email") ?? "admin@openclaw.local";
+    return window.localStorage.getItem("openclaw-admin-phone") ?? "15076032131";
   });
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [focusField, setFocusField] = useState<FocusField>(null);
   const [loginLoading, setLoginLoading] = useState(false);
-  const [loginHint, setLoginHint] = useState("请输入后台账号");
+  const [loginHint, setLoginHint] = useState("请输入后台管理员账号");
   const [mouse, setMouse] = useState({ x: 0.5, y: 0.45 });
   const passwordInputRef = useRef<HTMLInputElement | null>(null);
   const inputActive = focusField !== null;
@@ -35,17 +35,57 @@ export function AdminLogin() {
     }
 
     setLoginLoading(true);
-    setLoginHint("正在验证后台入口...");
-    await new Promise((resolve) => window.setTimeout(resolve, 650));
+    setLoginHint("正在校验后台入口...");
 
-    if (remember) {
-      window.localStorage.setItem("openclaw-admin-email", email.trim());
-    } else {
-      window.localStorage.removeItem("openclaw-admin-email");
+    try {
+      const response = await fetch("/api/admin/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          phone: email.trim(),
+          password,
+        }),
+      });
+
+      const result = (await response.json()) as {
+        error?: string;
+        token?: string;
+        admin?: { displayName: string; phone: string };
+      };
+
+      if (!response.ok || !result.token || !result.admin) {
+        throw new Error(result.error || "LOGIN_FAILED");
+      }
+
+      if (remember) {
+        window.localStorage.setItem("openclaw-admin-phone", email.trim());
+      } else {
+        window.localStorage.removeItem("openclaw-admin-phone");
+      }
+
+      window.localStorage.setItem("openclaw-admin-token", result.token);
+      window.localStorage.setItem("openclaw-admin-name", result.admin.displayName);
+      window.sessionStorage.setItem("openclaw-admin-auth", "ok");
+      router.push("/");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message === "INVALID_CREDENTIALS"
+            ? "账号或密码错误"
+            : error.message === "ADMIN_DISABLED"
+              ? "管理员账号已停用"
+              : error.message === "UPSTREAM_UNREACHABLE"
+                ? "登录服务不可用，请确认 node-backend 已启动"
+                : "登录失败，请稍后重试"
+          : "登录失败，请稍后重试";
+      setLoginHint(message);
+      setLoginLoading(false);
+      return;
     }
 
-    window.sessionStorage.setItem("openclaw-admin-auth", "ok");
-    router.push("/");
+    setLoginLoading(false);
   }
 
   return (
@@ -144,7 +184,7 @@ export function AdminLogin() {
                   inputMode="numeric"
                   autoCapitalize="off"
                   autoCorrect="off"
-                  placeholder="请输入后台账号"
+                  placeholder="请输入管理员手机号"
                 />
               </label>
 
@@ -187,7 +227,7 @@ export function AdminLogin() {
                   Remember for 30 days
                 </label>
                 <button type="button" className="font-medium text-[#4856c5] transition hover:text-[#2f3aa1]">
-                  Forgot password?
+                  Admin only
                 </button>
               </div>
 
@@ -198,17 +238,10 @@ export function AdminLogin() {
               >
                 {loginLoading ? "Logging in..." : "Log in"}
               </button>
-
-              <button
-                type="button"
-                className="h-14 w-full rounded-full border border-slate-200 bg-white text-sm font-semibold text-slate-900 transition hover:border-slate-300 hover:bg-slate-50"
-              >
-                Log in with Google
-              </button>
             </form>
 
             <p className="mt-8 text-center text-sm text-slate-500">
-              Don&apos;t have an account? <span className="font-semibold text-slate-950">Ask the admin</span>
+              默认超级管理员账号已写入数据库
             </p>
           </div>
         </section>

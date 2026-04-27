@@ -256,7 +256,7 @@ rows = conn.execute(
     "SELECT code_norm, machine_id, updated_at FROM license_bindings"
 ).fetchall()
 conn.close()
-  print(json.dumps([
+print(json.dumps([
     {"code": row[0], "machineId": row[1], "updatedAt": row[2]}
     for row in rows
 ], ensure_ascii=False))
