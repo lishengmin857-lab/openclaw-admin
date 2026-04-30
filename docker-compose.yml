@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  admin-backend:
+    build: .
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      # 直接读取刚刚在项目里建好的 .env.production
+      - NODE_ENV=production
+    env_file:
+      - .env.production
