@@ -60,8 +60,9 @@ export function SettingsPanel() {
       const textData = (await textRes.json()) as { settings?: TextSettings; error?: string };
       if (imageData.settings) setImageForm(imageData.settings);
       if (textData.settings) setTextForm(textData.settings);
-      const errMsg = (!imageRes.ok ? (imageData.error ?? "图片配置加载失败") : "") ||
-                     (!textRes.ok ? (textData.error ?? "文本配置加载失败") : "");
+      const errMsg =
+        (!imageRes.ok ? (imageData.error ?? "图片配置加载失败") : "") ||
+        (!textRes.ok ? (textData.error ?? "文本配置加载失败") : "");
       if (errMsg) setError(errMsg);
     } catch {
       setError("加载系统配置失败");

@@ -4,10 +4,20 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardPanel } from "@/components/dashboard-panel";
 import { OrdersPanel } from "@/components/orders-panel";
+import { QuotaFreePanel } from "@/components/quota-free-panel";
+import { RegistrationPolicyPanel } from "@/components/registration-policy-panel";
 import { SettingsPanel } from "@/components/settings-panel";
 import { UsersPanel } from "@/components/users-panel";
 
-type AdminView = "overview" | "users" | "memberships" | "orders" | "licenses" | "settings";
+type AdminView =
+  | "overview"
+  | "users"
+  | "memberships"
+  | "orders"
+  | "licenses"
+  | "registration"
+  | "quotaFree"
+  | "settings";
 
 type MenuItem = {
   key: AdminView;
@@ -22,7 +32,19 @@ const menuItems: MenuItem[] = [
   { key: "memberships", label: "会员管理", description: "沿用用户列表里的会员开通和关闭能力。", badge: "Live" },
   { key: "orders", label: "订单记录", description: "查看会员订单与开通记录。", badge: "Live" },
   { key: "licenses", label: "卡密管理", description: "管理卡密池与激活回流。" },
-  { key: "settings", label: "系统设置", description: "维护图片模型 Key、模型名和服务端配置。", badge: "Live" },
+  {
+    key: "registration",
+    label: "注册风控",
+    description: "配置会员注册 IP / 网段限流与单设备账号上限。",
+    badge: "Live",
+  },
+  {
+    key: "quotaFree",
+    label: "免费额度",
+    description: "普通用户文字与图片额度的滚动重置周期（天数）。",
+    badge: "Live",
+  },
+  { key: "settings", label: "系统设置", description: "维护文本与图片模型 Key、模型名和接口地址。", badge: "Live" },
 ];
 
 export function AdminShell() {
@@ -56,7 +78,7 @@ export function AdminShell() {
             <p className="text-xs font-semibold uppercase tracking-[0.32em] text-white/45">OpenClaw Backend</p>
             <h1 className="mt-3 text-2xl font-semibold tracking-tight">后台管理台</h1>
             <p className="mt-3 text-sm leading-6 text-white/65">
-              左侧切模块，右侧做实际管理。图片模型配置现在已经可以直接在后台维护。
+              左侧切模块，右侧做实际管理。注册风控与模型配置均可在此维护。
             </p>
           </div>
 
@@ -148,6 +170,10 @@ function renderContent(activeView: AdminView) {
       return <OrdersPanel />;
     case "settings":
       return <SettingsPanel />;
+    case "registration":
+      return <RegistrationPolicyPanel />;
+    case "quotaFree":
+      return <QuotaFreePanel />;
     default:
       return (
         <div className="space-y-6">
