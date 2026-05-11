@@ -5,11 +5,15 @@ import { useEffect, useState } from "react";
 type QuotaFreeRollingSettings = {
   textPeriodDays: number;
   imagePeriodDays: number;
+  textLimit: number;
+  imageLimit: number;
 };
 
 const DEFAULTS: QuotaFreeRollingSettings = {
   textPeriodDays: 3,
   imagePeriodDays: 7,
+  textLimit: 2,
+  imageLimit: 3,
 };
 
 function getToken() {
@@ -96,7 +100,7 @@ export function QuotaFreePanel() {
         </p>
       </div>
 
-      <section className="grid gap-4 sm:grid-cols-2">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-[24px] border border-stone-200 bg-gradient-to-br from-stone-50 to-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">文字额度周期</p>
           <p className="mt-3 text-2xl font-semibold text-slate-950">每 {form.textPeriodDays} 天</p>
@@ -105,10 +109,18 @@ export function QuotaFreePanel() {
           <p className="text-sm text-slate-500">图片额度周期</p>
           <p className="mt-3 text-2xl font-semibold text-slate-950">每 {form.imagePeriodDays} 天</p>
         </div>
+        <div className="rounded-[24px] border border-stone-200 bg-gradient-to-br from-stone-50 to-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">文字额度上限</p>
+          <p className="mt-3 text-2xl font-semibold text-slate-950">{form.textLimit} 次</p>
+        </div>
+        <div className="rounded-[24px] border border-stone-200 bg-gradient-to-br from-stone-50 to-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">图片额度上限</p>
+          <p className="mt-3 text-2xl font-semibold text-slate-950">{form.imageLimit} 次</p>
+        </div>
       </section>
 
       <section className="rounded-[28px] border border-stone-200 bg-white p-6 shadow-sm space-y-5">
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <label className="block space-y-2">
             <span className="text-sm font-medium text-slate-700">文字更新间隔（天）</span>
             <input
@@ -135,6 +147,36 @@ export function QuotaFreePanel() {
                 const n = Number.parseInt(e.target.value, 10);
                 if (!Number.isFinite(n)) return;
                 setForm((f) => ({ ...f, imagePeriodDays: Math.min(365, Math.max(1, n)) }));
+              }}
+              className="w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-sky-400"
+            />
+          </label>
+          <label className="block space-y-2">
+            <span className="text-sm font-medium text-slate-700">文字额度上限（次）</span>
+            <input
+              type="number"
+              min={0}
+              max={10000}
+              value={form.textLimit}
+              onChange={(e) => {
+                const n = Number.parseInt(e.target.value, 10);
+                if (!Number.isFinite(n)) return;
+                setForm((f) => ({ ...f, textLimit: Math.min(10000, Math.max(0, n)) }));
+              }}
+              className="w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-sky-400"
+            />
+          </label>
+          <label className="block space-y-2">
+            <span className="text-sm font-medium text-slate-700">图片额度上限（次）</span>
+            <input
+              type="number"
+              min={0}
+              max={10000}
+              value={form.imageLimit}
+              onChange={(e) => {
+                const n = Number.parseInt(e.target.value, 10);
+                if (!Number.isFinite(n)) return;
+                setForm((f) => ({ ...f, imageLimit: Math.min(10000, Math.max(0, n)) }));
               }}
               className="w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-sky-400"
             />
