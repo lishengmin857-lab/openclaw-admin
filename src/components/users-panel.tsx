@@ -142,36 +142,41 @@ function UserActionRow({
     finally { setBusy(false); }
   }
 
+  const adminRole = typeof window === "undefined" ? "super_admin" : window.localStorage.getItem("openclaw-admin-role");
+  const isAgent = adminRole === "agent";
+
   return (
     <tr className="bg-slate-50/80">
       <td colSpan={6} className="px-6 py-4">
         <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <select
-              value={selectedPlanCode}
-              onChange={(e) => setSelectedPlanCode(e.target.value)}
-              className="rounded-xl border border-stone-300 px-3 py-1.5 text-sm outline-none focus:border-amber-400"
-              disabled={busy}
-            >
-              {plans.length === 0 && <option value="">无可用套餐</option>}
-              {plans.map((p) => (
-                <option key={p.code} value={p.code}>
-                  {p.name}（¥{p.priceLabel}
-                  {p.isLifetime ? " · 永久" : p.durationDays ? ` · ${p.durationDays}天` : ""}）
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={grantMembership}
-              disabled={busy || plans.length === 0}
-              className="rounded-full bg-amber-500 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-amber-600 disabled:opacity-50"
-            >
-              手动开通
-            </button>
-          </div>
+          {!isAgent && (
+            <div className="flex items-center gap-2">
+              <select
+                value={selectedPlanCode}
+                onChange={(e) => setSelectedPlanCode(e.target.value)}
+                className="rounded-xl border border-stone-300 px-3 py-1.5 text-sm outline-none focus:border-amber-400"
+                disabled={busy}
+              >
+                {plans.length === 0 && <option value="">无可用套餐</option>}
+                {plans.map((p) => (
+                  <option key={p.code} value={p.code}>
+                    {p.name}（¥{p.priceLabel}
+                    {p.isLifetime ? " · 永久" : p.durationDays ? ` · ${p.durationDays}天` : ""}）
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={grantMembership}
+                disabled={busy || plans.length === 0}
+                className="rounded-full bg-amber-500 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-amber-600 disabled:opacity-50"
+              >
+                手动开通
+              </button>
+            </div>
+          )}
 
-          {user.membership?.isActive && (
+          {!isAgent && user.membership?.isActive && (
             <button
               type="button"
               onClick={revokeMembership}
@@ -182,18 +187,20 @@ function UserActionRow({
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={toggleStatus}
-            disabled={busy}
-            className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
-              user.status === "active"
-                ? "border-slate-300 text-slate-600 hover:bg-slate-100"
-                : "border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-            }`}
-          >
-            {user.status === "active" ? "停用账号" : "启用账号"}
-          </button>
+          {!isAgent && (
+            <button
+              type="button"
+              onClick={toggleStatus}
+              disabled={busy}
+              className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
+                user.status === "active"
+                  ? "border-slate-300 text-slate-600 hover:bg-slate-100"
+                  : "border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+              }`}
+            >
+              {user.status === "active" ? "停用账号" : "启用账号"}
+            </button>
+          )}
 
           {msg && (
             <span className="text-xs font-medium text-slate-500">{msg}</span>
@@ -205,6 +212,9 @@ function UserActionRow({
 }
 
 export function UsersPanel() {
+  const adminRole = typeof window === "undefined" ? "super_admin" : window.localStorage.getItem("openclaw-admin-role");
+  const isAgent = adminRole === "agent";
+
   const [users, setUsers] = useState<User[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -265,7 +275,7 @@ export function UsersPanel() {
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-600">User Center</p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">用户列表</h2>
             <p className="mt-3 text-sm leading-6 text-slate-600">
-              点击用户行可展开操作面板，支持手动开通 / 关闭会员、启用 / 停用账号。
+              点击用户行可展开操作面板{isAgent ? "，查看用户详情并支持启用 / 停用账号" : "，支持手动开通 / 关闭会员、启用 / 停用账号"}。
             </p>
           </div>
           <button

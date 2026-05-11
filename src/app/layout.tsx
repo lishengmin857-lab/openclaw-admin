@@ -17,6 +17,8 @@ export const metadata: Metadata = {
   description: "OpenClaw 用户、会员、订单与卡密管理后台",
 };
 
+import { Toaster } from "sonner";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,7 +29,10 @@ export default function RootLayout({
       lang="zh-CN"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-stone-100 text-slate-900">{children}</body>
+      <body className="min-h-full bg-stone-100 text-slate-900">
+        {children}
+        <Toaster position="top-center" richColors />
+      </body>
     </html>
   );
 }

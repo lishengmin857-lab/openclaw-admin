@@ -52,7 +52,7 @@ export function AdminLogin() {
       const result = (await response.json()) as {
         error?: string;
         token?: string;
-        admin?: { displayName: string; phone: string };
+        admin?: { displayName: string; phone: string; role: string; inviteCode?: string };
       };
 
       if (!response.ok || !result.token || !result.admin) {
@@ -67,6 +67,12 @@ export function AdminLogin() {
 
       window.localStorage.setItem("openclaw-admin-token", result.token);
       window.localStorage.setItem("openclaw-admin-name", result.admin.displayName);
+      window.localStorage.setItem("openclaw-admin-role", result.admin.role);
+      if (result.admin.inviteCode) {
+        window.localStorage.setItem("openclaw-admin-invite", result.admin.inviteCode);
+      } else {
+        window.localStorage.removeItem("openclaw-admin-invite");
+      }
       window.sessionStorage.setItem("openclaw-admin-auth", "ok");
       router.push("/");
     } catch (error) {
@@ -181,10 +187,9 @@ export function AdminLogin() {
                   onFocus={() => setFocusField("email")}
                   onBlur={() => setFocusField(null)}
                   className="h-14 rounded-full border border-slate-200 bg-white px-5 text-sm text-slate-900 outline-none transition focus:border-[#5b43ff] focus:ring-4 focus:ring-[#5b43ff]/10"
-                  inputMode="numeric"
                   autoCapitalize="off"
                   autoCorrect="off"
-                  placeholder="请输入管理员手机号"
+                  placeholder="请输入管理员手机号或邮箱"
                 />
               </label>
 

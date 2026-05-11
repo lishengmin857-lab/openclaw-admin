@@ -13,6 +13,7 @@ type TextSettings = {
   model: string;
   baseUrl: string;
   enableWebSearch: boolean;
+  reasoningEffort: string;
 };
 
 function getToken() {
@@ -40,6 +41,7 @@ export function SettingsPanel() {
     model: "",
     baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
     enableWebSearch: false,
+    reasoningEffort: "medium",
   });
   const [loading, setLoading] = useState(true);
   const [imageSaving, setImageSaving] = useState(false);
@@ -141,6 +143,11 @@ export function SettingsPanel() {
           <StatCard label="当前文本模型" value={textForm.model || "未配置"} />
           <StatCard label="当前 Key" value={maskValue(textForm.apiKey)} />
           <StatCard label="联网搜索默认值" value={textForm.enableWebSearch ? "开启" : "关闭"} />
+          <StatCard label="思考深度 (Reasoning)" value={
+            textForm.reasoningEffort === "high" ? "高" :
+            textForm.reasoningEffort === "low" ? "低" :
+            textForm.reasoningEffort === "minimal" ? "关闭" : "中 (默认)"
+          } />
         </section>
 
         <section className="rounded-[28px] border border-stone-200 bg-white p-6 shadow-sm space-y-5">
@@ -162,6 +169,19 @@ export function SettingsPanel() {
             />
             <span className="text-sm font-medium text-slate-700">默认开启联网搜索</span>
           </label>
+          <div className="space-y-2">
+            <span className="text-sm font-medium text-slate-700">推理深度 (Reasoning Effort)</span>
+            <select
+              value={textForm.reasoningEffort}
+              onChange={(e) => setTextForm((f) => ({ ...f, reasoningEffort: e.target.value }))}
+              className="w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-amber-400 bg-white"
+            >
+              <option value="high">高 (high) - 深度分析，适合复杂问题</option>
+              <option value="medium">中 (medium) - 均衡模式，兼顾速度与深度</option>
+              <option value="low">低 (low) - 轻量思考，侧重快速响应</option>
+              <option value="minimal">关闭 (minimal) - 关闭思考，直接回答</option>
+            </select>
+          </div>
           {textMessage ? (
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{textMessage}</div>
           ) : null}

@@ -27,10 +27,16 @@ export default function HomePage() {
         }
         return response.json();
       })
-      .then((result: { admin: { displayName: string; phone: string } }) => {
+      .then((result: { admin: { displayName: string; phone: string; role: string; inviteCode?: string } }) => {
         window.sessionStorage.setItem("openclaw-admin-auth", "ok");
         window.localStorage.setItem("openclaw-admin-name", result.admin.displayName);
         window.localStorage.setItem("openclaw-admin-phone", result.admin.phone);
+        window.localStorage.setItem("openclaw-admin-role", result.admin.role);
+        if (result.admin.inviteCode) {
+          window.localStorage.setItem("openclaw-admin-invite", result.admin.inviteCode);
+        } else {
+          window.localStorage.removeItem("openclaw-admin-invite");
+        }
         setReady(true);
       })
       .catch(() => {

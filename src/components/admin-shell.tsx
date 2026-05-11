@@ -2,62 +2,76 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { DashboardPanel } from "@/components/dashboard-panel";
+import { OverviewPanel } from "@/components/overview-panel";
 import { OrdersPanel } from "@/components/orders-panel";
 import { QuotaFreePanel } from "@/components/quota-free-panel";
 import { RegistrationPolicyPanel } from "@/components/registration-policy-panel";
 import { SettingsPanel } from "@/components/settings-panel";
 import { UsersPanel } from "@/components/users-panel";
+import { AgentsPanel } from "@/components/agents-panel";
+import { PlansPanel } from "@/components/plans-panel";
 
 type AdminView =
   | "overview"
   | "users"
   | "memberships"
   | "orders"
-  | "licenses"
   | "registration"
   | "quotaFree"
-  | "settings";
+  | "settings"
+  | "agents"
+  | "plans";
 
 type MenuItem = {
   key: AdminView;
   label: string;
   badge?: string;
-  description: string;
 };
 
 const menuItems: MenuItem[] = [
-  { key: "overview", label: "仪表盘", description: "查看后台概览与当前工作状态。" },
-  { key: "users", label: "用户管理", description: "查看用户、会员状态并执行基础账号操作。" },
-  { key: "memberships", label: "会员管理", description: "沿用用户列表里的会员开通和关闭能力。", badge: "Live" },
-  { key: "orders", label: "订单记录", description: "查看会员订单与开通记录。", badge: "Live" },
-  { key: "licenses", label: "卡密管理", description: "管理卡密池与激活回流。" },
-  {
-    key: "registration",
-    label: "注册风控",
-    description: "配置会员注册 IP / 网段限流与单设备账号上限。",
-    badge: "Live",
-  },
-  {
-    key: "quotaFree",
-    label: "免费额度",
-    description: "普通用户文字与图片额度的滚动重置周期（天数）。",
-    badge: "Live",
-  },
-  { key: "settings", label: "系统设置", description: "维护文本与图片模型 Key、模型名和接口地址。", badge: "Live" },
+  { key: "overview", label: "仪表盘" },
+  { key: "users", label: "用户管理" },
+  { key: "memberships", label: "会员管理", badge: "Live" },
+  { key: "orders", label: "订单记录", badge: "Live" },
+  { key: "registration", label: "注册风控", badge: "Live" },
+  { key: "quotaFree", label: "免费额度", badge: "Live" },
+  { key: "settings", label: "系统设置", badge: "Live" },
+  { key: "agents", label: "代理管理" },
+  { key: "plans", label: "套餐管理" },
 ];
 
 export function AdminShell() {
   const router = useRouter();
-  const [activeView, setActiveView] = useState<AdminView>("overview");
+  const adminRole =
+    typeof window === "undefined"
+      ? "super_admin"
+      : window.localStorage.getItem("openclaw-admin-role") || "super_admin";
+
+  const [activeView, setActiveView] = useState<AdminView>(adminRole === "agent" ? "users" : "overview");
+
   const adminName =
     typeof window === "undefined"
       ? "超级管理员"
       : window.localStorage.getItem("openclaw-admin-name") || "超级管理员";
 
+  const inviteCode =
+    typeof window === "undefined"
+      ? ""
+      : window.localStorage.getItem("openclaw-admin-invite") || "";
+
+  const filteredMenuItems = useMemo(() => {
+    if (adminRole === "agent") {
+      // 代理商允许查看：仪表盘、用户列表、订单记录
+      return menuItems.filter(
+        (item) => item.key === "overview" || item.key === "users" || item.key === "orders",
+      );
+    }
+    return menuItems;
+  }, [adminRole]);
+
   const activeItem = useMemo(
-    () => menuItems.find((item) => item.key === activeView) ?? menuItems[0],
-    [activeView],
+    () => filteredMenuItems.find((item) => item.key === activeView) ?? filteredMenuItems[0],
+    [activeView, filteredMenuItems],
   );
 
   const now = new Intl.DateTimeFormat("zh-CN", { dateStyle: "full" }).format(new Date());
@@ -67,6 +81,8 @@ export function AdminShell() {
     window.localStorage.removeItem("openclaw-admin-token");
     window.localStorage.removeItem("openclaw-admin-name");
     window.localStorage.removeItem("openclaw-admin-phone");
+    window.localStorage.removeItem("openclaw-admin-role");
+    window.localStorage.removeItem("openclaw-admin-invite");
     router.replace("/login");
   }
 
@@ -75,53 +91,48 @@ export function AdminShell() {
       <div className="mx-auto flex min-h-screen max-w-[1600px] gap-6 px-4 py-4 lg:px-6 lg:py-6">
         <aside className="hidden w-[280px] shrink-0 rounded-[30px] border border-stone-200 bg-slate-950 p-5 text-white shadow-[0_24px_80px_rgba(15,23,42,0.22)] lg:flex lg:flex-col">
           <div className="rounded-[24px] border border-white/10 bg-white/5 p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-white/45">OpenClaw Backend</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-white/45">xiezuozhushou</p>
             <h1 className="mt-3 text-2xl font-semibold tracking-tight">后台管理台</h1>
-            <p className="mt-3 text-sm leading-6 text-white/65">
-              左侧切模块，右侧做实际管理。注册风控与模型配置均可在此维护。
-            </p>
           </div>
 
           <nav className="mt-5 space-y-2">
-            {menuItems.map((item) => {
+            {filteredMenuItems.map((item) => {
               const active = item.key === activeView;
               return (
                 <button
                   key={item.key}
                   type="button"
                   onClick={() => setActiveView(item.key)}
-                  className={`w-full rounded-[22px] px-4 py-4 text-left transition ${
-                    active
-                      ? "bg-white text-slate-950 shadow-[0_16px_40px_rgba(255,255,255,0.1)]"
-                      : "bg-white/[0.03] text-white/82 hover:bg-white/[0.08]"
-                  }`}
+                  className={`w-full rounded-[22px] px-4 py-4 text-left transition ${active
+                    ? "bg-white text-slate-950 shadow-[0_16px_40px_rgba(255,255,255,0.1)]"
+                    : "bg-white/[0.03] text-white/82 hover:bg-white/[0.08]"
+                    }`}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-sm font-semibold">{item.label}</span>
                     {item.badge ? (
                       <span
-                        className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${
-                          active ? "bg-slate-100 text-slate-600" : "bg-white/10 text-white/60"
-                        }`}
+                        className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${active ? "bg-slate-100 text-slate-600" : "bg-white/10 text-white/60"
+                          }`}
                       >
                         {item.badge}
                       </span>
                     ) : null}
                   </div>
-                  <p className={`mt-2 text-xs leading-5 ${active ? "text-slate-500" : "text-white/55"}`}>
-                    {item.description}
-                  </p>
                 </button>
               );
             })}
           </nav>
 
           <div className="mt-auto rounded-[24px] border border-white/10 bg-white/5 p-5">
-            <p className="text-xs uppercase tracking-[0.24em] text-white/40">Admin Session</p>
             <div className="mt-3 flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold">{adminName}</p>
-                <p className="text-xs text-white/55">当前为本地管理模式</p>
+                {inviteCode ? (
+                  <p className="mt-1 text-xs font-mono text-amber-400">邀请码: {inviteCode}</p>
+                ) : (
+                  <p className="text-xs text-white/55">当前为本地管理模式</p>
+                )}
               </div>
               <button
                 type="button"
@@ -140,13 +151,6 @@ export function AdminShell() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-600">{now}</p>
                 <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">{activeItem.label}</h2>
-                <p className="mt-2 text-sm text-slate-500">{activeItem.description}</p>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                <QuickPill label="服务状态" value="本地运行" tone="emerald" />
-                <QuickPill label="数据库" value="PostgreSQL" tone="sky" />
-                <QuickPill label="客户端" value="OpenClaw Tauri" tone="amber" />
               </div>
             </div>
           </header>
@@ -160,8 +164,6 @@ export function AdminShell() {
 
 function renderContent(activeView: AdminView) {
   switch (activeView) {
-    case "licenses":
-      return <DashboardPanel />;
     case "users":
       return <UsersPanel />;
     case "memberships":
@@ -174,31 +176,14 @@ function renderContent(activeView: AdminView) {
       return <RegistrationPolicyPanel />;
     case "quotaFree":
       return <QuotaFreePanel />;
+    case "agents":
+      return <AgentsPanel />;
+    case "plans":
+      return <PlansPanel />;
+    case "overview":
+      return <OverviewPanel />;
     default:
-      return (
-        <div className="space-y-6">
-          <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-            <div className="rounded-[28px] border border-stone-200 bg-[linear-gradient(135deg,#fff7ed_0%,#ffffff_48%,#f8fafc_100%)] p-6 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-600">Overview</p>
-              <h3 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">后台框架已经切成左右结构</h3>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-                现在可以继续用卡密、用户、订单模块工作，图片模型配置也已经单独收进系统设置，不需要再改服务端代码。
-              </p>
-            </div>
-
-            <div className="rounded-[28px] border border-stone-200 bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-slate-950">下一步建议</h3>
-              <div className="mt-4 space-y-3">
-                <MiniStep step="01" text="用户与会员数据继续保持后台集中管理" />
-                <MiniStep step="02" text="图片模型参数改成后台维护，客户端只负责调用" />
-                <MiniStep step="03" text="后面再把图生视频任务也挂进系统设置和任务中心" />
-              </div>
-            </div>
-          </section>
-
-          <DashboardPanel />
-        </div>
-      );
+      return <OverviewPanel />;
   }
 }
 
