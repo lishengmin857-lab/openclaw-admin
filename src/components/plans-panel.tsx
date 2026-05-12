@@ -135,15 +135,15 @@ export function PlansPanel() {
           </thead>
           <tbody className="divide-y divide-stone-100">
             {plans.map((plan) => (
-              <tr key={plan.id} className="transition hover:bg-stone-50/50">
+              <tr key={plan.id} className={`transition hover:bg-stone-50/50 ${plan.isActive ? "" : "bg-stone-50/60 text-slate-500"}`}>
                 <td className="px-6 py-4">
-                  <div className="font-semibold text-slate-950">{plan.name}</div>
+                  <div className={`font-semibold ${plan.isActive ? "text-slate-950" : "text-slate-500"}`}>{plan.name}</div>
                   <div className="text-xs text-slate-500 font-mono">{plan.code}</div>
                 </td>
-                <td className="px-6 py-4 text-slate-700 font-medium">
+                <td className={`px-6 py-4 font-medium ${plan.isActive ? "text-slate-700" : "text-slate-500"}`}>
                   {plan.priceLabel} 元
                 </td>
-                <td className="px-6 py-4 text-slate-600">
+                <td className={`px-6 py-4 ${plan.isActive ? "text-slate-600" : "text-slate-500"}`}>
                   <div className="flex gap-2">
                     <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-indigo-700 text-xs">{plan.textDailyLimit} 文</span>
                     <span className="rounded bg-amber-50 px-1.5 py-0.5 text-amber-700 text-xs">{plan.imageMonthlyLimit} 图</span>
