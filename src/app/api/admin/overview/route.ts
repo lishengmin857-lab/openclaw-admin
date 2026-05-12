@@ -24,3 +24,28 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "UPSTREAM_UNREACHABLE" }, { status: 502 });
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const response = await fetch(`${upstreamBaseUrl}/api/v1/admin/overview`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: request.headers.get("authorization") || "",
+      },
+      body: JSON.stringify(await request.json()),
+      cache: "no-store",
+    });
+
+    const text = await response.text();
+    return new NextResponse(text, {
+      status: response.status,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch {
+    return NextResponse.json({ error: "UPSTREAM_UNREACHABLE" }, { status: 502 });
+  }
+}

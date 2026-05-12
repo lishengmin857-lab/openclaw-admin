@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 type OverviewData = {
   role: "super_admin" | "agent";
   inviteCode?: string;
+  contactWechat?: string;
   stats: {
     userCount: number;
     orderCount: number;
@@ -16,6 +17,8 @@ export function OverviewPanel() {
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [contactWechat, setContactWechat] = useState("");
+  const [savingContact, setSavingContact] = useState(false);
 
   const token = typeof window === "undefined" ? "" : window.localStorage.getItem("openclaw-admin-token") || "";
 
@@ -36,6 +39,7 @@ export function OverviewPanel() {
 
       const result = await response.json();
       setData(result);
+      setContactWechat(result.contactWechat || "");
     } catch (err) {
       setError("加载仪表盘数据失败，请检查网络或重新登录。");
     } finally {
@@ -67,6 +71,32 @@ export function OverviewPanel() {
 
   const isAgent = data.role === "agent";
 
+  async function saveContactWechat() {
+    if (!isAgent) return;
+    setSavingContact(true);
+    setError("");
+    try {
+      const response = await fetch("/api/admin/overview", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ contactWechat: contactWechat.trim() }),
+      });
+      if (!response.ok) {
+        throw new Error("FAILED_TO_SAVE");
+      }
+      const result = await response.json();
+      setData((current) => current ? { ...current, contactWechat: result.contactWechat || "" } : current);
+      setContactWechat(result.contactWechat || "");
+    } catch {
+      setError("保存联系微信失败，请稍后再试。");
+    } finally {
+      setSavingContact(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <section className="rounded-[28px] border border-stone-200 bg-white p-6 shadow-sm">
@@ -83,9 +113,31 @@ export function OverviewPanel() {
             </p>
           </div>
           {isAgent && data.inviteCode && (
-            <div className="rounded-[22px] border border-amber-200 bg-amber-50 px-6 py-4">
-              <p className="text-xs font-medium uppercase tracking-widest text-amber-600">您的邀请码</p>
-              <p className="mt-2 font-mono text-2xl font-bold tracking-wider text-amber-900">{data.inviteCode}</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-[22px] border border-amber-200 bg-amber-50 px-6 py-4">
+                <p className="text-xs font-medium uppercase tracking-widest text-amber-600">您的邀请码</p>
+                <p className="mt-2 font-mono text-2xl font-bold tracking-wider text-amber-900">{data.inviteCode}</p>
+              </div>
+              <div className="rounded-[22px] border border-sky-200 bg-sky-50 px-6 py-4">
+                <p className="text-xs font-medium uppercase tracking-widest text-sky-600">会员咨询微信</p>
+                <div className="mt-2 flex gap-2">
+                  <input
+                    value={contactWechat}
+                    onChange={(event) => setContactWechat(event.target.value)}
+                    placeholder="不填则显示默认微信"
+                    className="min-w-0 flex-1 rounded-xl border border-sky-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-sky-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void saveContactWechat()}
+                    disabled={savingContact}
+                    className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:opacity-50"
+                  >
+                    {savingContact ? "保存中" : "保存"}
+                  </button>
+                </div>
+                <p className="mt-2 text-xs text-sky-700">关联用户开通会员时会优先看到这个微信号。</p>
+              </div>
             </div>
           )}
         </div>

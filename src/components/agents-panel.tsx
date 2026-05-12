@@ -9,6 +9,7 @@ interface Agent {
   name: string;
   email: string;
   inviteCode: string;
+  contactWechat?: string;
   status: string;
   createdAt: string;
   userCount: number;
@@ -26,6 +27,7 @@ export function AgentsPanel() {
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formPassword, setFormPassword] = useState("");
+  const [formContactWechat, setFormContactWechat] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const fetchAgents = async () => {
@@ -65,7 +67,8 @@ export function AgentsPanel() {
         body: JSON.stringify({ 
           name: formName.trim(),
           email: formEmail.trim(),
-          password: formPassword.trim()
+          password: formPassword.trim(),
+          contactWechat: formContactWechat.trim(),
         }),
       });
       const data = await res.json();
@@ -75,6 +78,7 @@ export function AgentsPanel() {
         setFormName("");
         setFormEmail("");
         setFormPassword("");
+        setFormContactWechat("");
         fetchAgents();
       } else {
         toast.error(data.error || "创建失败");
@@ -98,13 +102,14 @@ export function AgentsPanel() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name: formName.trim() }),
+        body: JSON.stringify({ name: formName.trim(), contactWechat: formContactWechat.trim() }),
       });
       if (res.ok) {
         toast.success("代理信息已更新");
         setIsEditModalOpen(false);
         setCurrentAgent(null);
         setFormName("");
+        setFormContactWechat("");
         fetchAgents();
       } else {
         toast.error("更新失败");
@@ -157,12 +162,14 @@ export function AgentsPanel() {
     setFormName("");
     setFormEmail("");
     setFormPassword("");
+    setFormContactWechat("");
     setIsAddModalOpen(true);
   };
 
   const openEditModal = (agent: Agent) => {
     setCurrentAgent(agent);
     setFormName(agent.name);
+    setFormContactWechat(agent.contactWechat ?? "");
     setIsEditModalOpen(true);
   };
 
@@ -193,6 +200,7 @@ export function AgentsPanel() {
           <thead className="bg-stone-50/50 text-stone-500">
             <tr>
               <th className="px-8 py-5 font-bold uppercase tracking-widest text-[10px]">代理人/登录邮箱</th>
+              <th className="px-8 py-5 font-bold uppercase tracking-widest text-[10px]">联系微信</th>
               <th className="px-8 py-5 font-bold uppercase tracking-widest text-[10px]">专属注册码</th>
               <th className="px-8 py-5 font-bold uppercase tracking-widest text-[10px] text-center">已邀请人数</th>
               <th className="px-8 py-5 font-bold uppercase tracking-widest text-[10px]">状态</th>
@@ -203,14 +211,14 @@ export function AgentsPanel() {
           <tbody className="divide-y divide-stone-100">
             {loading && agents.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-8 py-20 text-center text-stone-400">
+                <td colSpan={7} className="px-8 py-20 text-center text-stone-400">
                   <RefreshCcw className="mx-auto mb-4 h-8 w-8 animate-spin opacity-20" />
                   正在获取数据...
                 </td>
               </tr>
             ) : agents.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-8 py-20 text-center text-stone-400">
+                <td colSpan={7} className="px-8 py-20 text-center text-stone-400">
                   目前没有任何代理商记录
                 </td>
               </tr>
@@ -220,6 +228,11 @@ export function AgentsPanel() {
                   <td className="px-8 py-5">
                     <div className="font-bold text-slate-900 text-base">{agent.name}</div>
                     <div className="text-xs text-slate-400 font-medium mt-0.5">{agent.email}</div>
+                  </td>
+                  <td className="px-8 py-5">
+                    <span className="font-mono text-xs font-semibold text-slate-600">
+                      {agent.contactWechat || "默认微信"}
+                    </span>
                   </td>
                   <td className="px-8 py-5">
                     <span className="rounded-xl bg-amber-50 px-3 py-1.5 font-mono font-bold text-amber-700 border border-amber-100">
@@ -323,6 +336,17 @@ export function AgentsPanel() {
                 </div>
 
                 <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">会员咨询微信号</label>
+                  <input
+                    type="text"
+                    placeholder="不填则显示默认微信"
+                    value={formContactWechat}
+                    onChange={(e) => setFormContactWechat(e.target.value)}
+                    className="w-full rounded-2xl border border-stone-200 bg-slate-50 px-5 py-4 text-slate-900 focus:border-slate-950 focus:bg-white focus:outline-none transition-all"
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-widest text-slate-400">初始登录密码</label>
                   <div className="relative">
                     <Lock className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
@@ -381,6 +405,17 @@ export function AgentsPanel() {
                 />
               </div>
 
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-400">会员咨询微信号</label>
+                <input
+                  type="text"
+                  value={formContactWechat}
+                  onChange={(e) => setFormContactWechat(e.target.value)}
+                  placeholder="不填则显示默认微信"
+                  className="w-full rounded-2xl border border-stone-200 bg-slate-50 px-5 py-4 text-slate-900 focus:border-slate-950 focus:bg-white focus:outline-none transition-all"
+                />
+              </div>
+
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-3">
                 <div>
                   <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">登录账号</div>
@@ -401,7 +436,11 @@ export function AgentsPanel() {
                 </button>
                 <button
                   onClick={handleUpdateName}
-                  disabled={submitting || !formName.trim() || formName === currentAgent?.name}
+                  disabled={
+                    submitting ||
+                    !formName.trim() ||
+                    (formName === currentAgent?.name && formContactWechat === (currentAgent?.contactWechat ?? ""))
+                  }
                   className="flex-[2] flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-6 py-4 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-40 transition shadow-lg shadow-slate-200"
                 >
                   {submitting ? <RefreshCcw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}

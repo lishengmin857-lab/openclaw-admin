@@ -13,6 +13,7 @@ type Plan = {
   priceLabel: string;
   isActive: boolean;
   textDailyLimit: number;
+  textMonthlyLimit?: number;
   imageMonthlyLimit: number;
   wechatAccountLimit: number;
   tagline: string;
@@ -79,7 +80,7 @@ export function PlansPanel() {
           name: editingPlan.name,
           priceCents: editingPlan.priceCents,
           isActive: editingPlan.isActive,
-          textDailyLimit: editingPlan.textDailyLimit,
+          textMonthlyLimit: editingPlan.textMonthlyLimit ?? editingPlan.textDailyLimit * 30,
           imageMonthlyLimit: editingPlan.imageMonthlyLimit,
           wechatAccountLimit: editingPlan.wechatAccountLimit,
           tagline: editingPlan.tagline,
@@ -145,7 +146,7 @@ export function PlansPanel() {
                 </td>
                 <td className={`px-6 py-4 ${plan.isActive ? "text-slate-600" : "text-slate-500"}`}>
                   <div className="flex gap-2">
-                    <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-indigo-700 text-xs">{plan.textDailyLimit} 文</span>
+                    <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-indigo-700 text-xs">{plan.textMonthlyLimit ?? plan.textDailyLimit * 30} 文/月</span>
                     <span className="rounded bg-amber-50 px-1.5 py-0.5 text-amber-700 text-xs">{plan.imageMonthlyLimit} 图</span>
                     <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-emerald-700 text-xs">{plan.wechatAccountLimit > 500 ? '∞' : plan.wechatAccountLimit} 号</span>
                   </div>
@@ -209,12 +210,12 @@ export function PlansPanel() {
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">每日文字</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">每月文章总数</label>
                   <input
                     type="number"
                     className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white transition"
-                    value={editingPlan.textDailyLimit}
-                    onChange={e => setEditingPlan({...editingPlan, textDailyLimit: parseInt(e.target.value) || 0})}
+                    value={editingPlan.textMonthlyLimit ?? editingPlan.textDailyLimit * 30}
+                    onChange={e => setEditingPlan({...editingPlan, textMonthlyLimit: parseInt(e.target.value) || 0})}
                   />
                 </div>
                 <div>
