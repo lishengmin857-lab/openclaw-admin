@@ -139,7 +139,54 @@ export function OrdersPanel() {
           />
         </div>
 
-        <div className="mt-5 overflow-x-auto overflow-hidden rounded-2xl border border-stone-200">
+        <div className="mt-5 grid gap-3 md:hidden">
+          {loading ? (
+            <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-8 text-center text-sm text-slate-500">
+              正在加载订单...
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-8 text-center text-sm text-slate-500">
+              {search ? "没有匹配的订单" : "暂无订单记录"}
+            </div>
+          ) : (
+            filtered.map((order) => (
+              <article key={order.id} className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="break-all font-mono text-xs font-semibold text-slate-700">{order.orderNo}</p>
+                    <p className="mt-2 text-lg font-semibold text-slate-950">¥{order.amountLabel}</p>
+                  </div>
+                  <OrderStatusBadge status={order.status} />
+                </div>
+
+                <div className="mt-4 grid gap-3 rounded-2xl bg-stone-50 p-3 text-sm">
+                  <MobileField
+                    label="用户"
+                    value={
+                      <span>
+                        <span className="block font-semibold text-slate-800">{order.user.displayName}</span>
+                        <span className="block break-all text-slate-500">{order.user.email}</span>
+                      </span>
+                    }
+                  />
+                  <MobileField
+                    label="套餐"
+                    value={
+                      <span>
+                        <span className="font-semibold text-slate-800">{order.plan.name}</span>
+                        {order.plan.isLifetime ? <span className="ml-1 text-amber-600">永久</span> : null}
+                      </span>
+                    }
+                  />
+                  <MobileField label="支付时间" value={formatDate(order.paidAt)} />
+                  <MobileField label="创建时间" value={formatDate(order.createdAt)} />
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+
+        <div className="mt-5 hidden overflow-x-auto overflow-hidden rounded-2xl border border-stone-200 md:block">
           <table className="min-w-full divide-y divide-stone-200 text-left text-sm">
             <thead className="bg-stone-50 text-slate-500">
               <tr>
@@ -203,6 +250,15 @@ function StatCard({ label, value, accent }: { label: string; value: string; acce
     <div className={`rounded-[24px] border border-stone-200 bg-gradient-to-br ${cls} p-5 shadow-sm`}>
       <p className="text-sm text-slate-500">{label}</p>
       <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+function MobileField({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <span className="shrink-0 text-xs font-medium text-slate-400">{label}</span>
+      <span className="min-w-0 text-right text-xs font-medium text-slate-700">{value}</span>
     </div>
   );
 }

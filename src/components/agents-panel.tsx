@@ -195,7 +195,83 @@ export function AgentsPanel() {
       </div>
 
       {/* Agents Table */}
-      <div className="overflow-hidden rounded-[30px] border border-stone-200 bg-white shadow-sm">
+      <div className="grid gap-3 md:hidden">
+        {loading && agents.length === 0 ? (
+          <div className="rounded-[26px] border border-stone-200 bg-white px-4 py-10 text-center text-sm text-stone-400 shadow-sm">
+            <RefreshCcw className="mx-auto mb-4 h-8 w-8 animate-spin opacity-20" />
+            正在获取数据...
+          </div>
+        ) : agents.length === 0 ? (
+          <div className="rounded-[26px] border border-stone-200 bg-white px-4 py-10 text-center text-sm text-stone-400 shadow-sm">
+            目前没有任何代理商记录
+          </div>
+        ) : (
+          agents.map((agent) => (
+            <article key={agent.id} className="rounded-[26px] border border-stone-200 bg-white p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-slate-950">{agent.name}</h3>
+                  <p className="mt-1 break-all text-xs font-medium text-slate-400">{agent.email}</p>
+                </div>
+                <span
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider ${
+                    agent.status === "active"
+                      ? "border border-emerald-100 bg-emerald-50 text-emerald-700"
+                      : "border border-rose-100 bg-rose-50 text-rose-700"
+                  }`}
+                >
+                  <span className={`h-2 w-2 rounded-full ${agent.status === "active" ? "bg-emerald-500" : "bg-rose-500"}`} />
+                  {agent.status === "active" ? "Active" : "Disabled"}
+                </span>
+              </div>
+
+              <div className="mt-4 grid gap-3 rounded-2xl bg-stone-50 p-3">
+                <MobileField label="联系微信" value={agent.contactWechat || "默认微信"} />
+                <MobileField
+                  label="注册码"
+                  value={
+                    <span className="rounded-lg border border-amber-100 bg-amber-50 px-2 py-1 font-mono font-bold text-amber-700">
+                      {agent.inviteCode}
+                    </span>
+                  }
+                />
+                <MobileField label="已邀请" value={`${agent.userCount}`} />
+                <MobileField label="创建日期" value={new Date(agent.createdAt).toLocaleDateString()} />
+              </div>
+
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => openEditModal(agent)}
+                  className="flex items-center justify-center gap-1 rounded-2xl border border-stone-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-600 shadow-sm"
+                >
+                  <Edit3 className="h-3.5 w-3.5" />
+                  编辑
+                </button>
+                <button
+                  onClick={() => handleToggleStatus(agent.id, agent.status)}
+                  className={`flex items-center justify-center gap-1 rounded-2xl border bg-white px-3 py-2.5 text-xs font-semibold shadow-sm ${
+                    agent.status === "active"
+                      ? "border-amber-200 text-amber-600"
+                      : "border-emerald-200 text-emerald-600"
+                  }`}
+                >
+                  <Power className="h-3.5 w-3.5" />
+                  {agent.status === "active" ? "停用" : "启用"}
+                </button>
+                <button
+                  onClick={() => handleDelete(agent.id)}
+                  className="flex items-center justify-center gap-1 rounded-2xl border border-rose-200 bg-white px-3 py-2.5 text-xs font-semibold text-rose-500 shadow-sm"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  删除
+                </button>
+              </div>
+            </article>
+          ))
+        )}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-[30px] border border-stone-200 bg-white shadow-sm md:block">
         <table className="w-full text-left text-sm">
           <thead className="bg-stone-50/50 text-stone-500">
             <tr>
@@ -451,6 +527,15 @@ export function AgentsPanel() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function MobileField({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <span className="shrink-0 text-xs font-medium text-slate-400">{label}</span>
+      <span className="min-w-0 text-right text-xs font-semibold text-slate-700">{value}</span>
     </div>
   );
 }

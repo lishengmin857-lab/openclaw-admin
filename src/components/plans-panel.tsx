@@ -123,7 +123,50 @@ export function PlansPanel() {
         </div>
       </section>
 
-      <div className="rounded-[28px] border border-stone-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.04)] overflow-hidden">
+      <div className="grid gap-3 md:hidden">
+        {plans.map((plan) => (
+          <article
+            key={plan.id}
+            className={`rounded-[24px] border border-stone-200 bg-white p-4 shadow-sm ${plan.isActive ? "" : "bg-stone-50/70 text-slate-500"}`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className={`font-semibold ${plan.isActive ? "text-slate-950" : "text-slate-500"}`}>
+                  {plan.name}
+                </h3>
+                <p className="mt-1 break-all font-mono text-xs text-slate-500">{plan.code}</p>
+              </div>
+              <span className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                plan.isActive ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+              }`}>
+                {plan.isActive ? "已激活" : "已禁用"}
+              </span>
+            </div>
+
+            <div className="mt-4 grid gap-3 rounded-2xl bg-stone-50 p-3">
+              <MobileField label="价格" value={`${plan.priceLabel} 元`} />
+              <MobileField label="文章" value={`${plan.textMonthlyLimit ?? plan.textDailyLimit * 30} 篇/月`} />
+              <MobileField label="图片" value={`${plan.imageMonthlyLimit} 图/月`} />
+              <MobileField label="公众号" value={`${plan.wechatAccountLimit > 500 ? "∞" : plan.wechatAccountLimit} 个`} />
+            </div>
+
+            <button
+              onClick={() => handleEdit(plan)}
+              className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700"
+            >
+              <Edit2 className="h-3.5 w-3.5" />
+              编辑
+            </button>
+          </article>
+        ))}
+        {plans.length === 0 && !loading && (
+          <div className="rounded-[24px] border border-stone-200 bg-white px-4 py-10 text-center text-sm text-slate-400">
+            暂无套餐数据
+          </div>
+        )}
+      </div>
+
+      <div className="hidden rounded-[28px] border border-stone-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.04)] overflow-hidden md:block">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-stone-100 bg-stone-50/50">
@@ -304,6 +347,15 @@ export function PlansPanel() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function MobileField({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <span className="shrink-0 text-xs font-medium text-slate-400">{label}</span>
+      <span className="min-w-0 text-right text-xs font-semibold text-slate-700">{value}</span>
     </div>
   );
 }

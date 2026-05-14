@@ -77,7 +77,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function UserActionRow({
+function UserActionPanel({
   user,
   plans,
   onUpdated,
@@ -146,15 +146,13 @@ function UserActionRow({
   const isAgent = adminRole === "agent";
 
   return (
-    <tr className="bg-slate-50/80">
-      <td colSpan={6} className="px-6 py-4">
-        <div className="flex flex-wrap items-center gap-4">
+    <div className="flex flex-wrap items-center gap-4">
           {!isAgent && (
-            <div className="flex items-center gap-2">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
               <select
                 value={selectedPlanCode}
                 onChange={(e) => setSelectedPlanCode(e.target.value)}
-                className="rounded-xl border border-stone-300 px-3 py-1.5 text-sm outline-none focus:border-amber-400"
+                className="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-400 sm:w-auto sm:py-1.5"
                 disabled={busy}
               >
                 {plans.length === 0 && <option value="">无可用套餐</option>}
@@ -169,7 +167,7 @@ function UserActionRow({
                 type="button"
                 onClick={grantMembership}
                 disabled={busy || plans.length === 0}
-                className="rounded-full bg-amber-500 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-amber-600 disabled:opacity-50"
+                className="rounded-full bg-amber-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-amber-600 disabled:opacity-50 sm:py-1.5"
               >
                 手动开通
               </button>
@@ -181,7 +179,7 @@ function UserActionRow({
               type="button"
               onClick={revokeMembership}
               disabled={busy}
-              className="rounded-full border border-rose-300 px-4 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-50"
+              className="rounded-full border border-rose-300 px-4 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-50 sm:py-1.5"
             >
               关闭会员
             </button>
@@ -192,7 +190,7 @@ function UserActionRow({
               type="button"
               onClick={toggleStatus}
               disabled={busy}
-              className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
+              className={`rounded-full border px-4 py-2 text-xs font-semibold transition disabled:opacity-50 sm:py-1.5 ${
                 user.status === "active"
                   ? "border-slate-300 text-slate-600 hover:bg-slate-100"
                   : "border-emerald-300 text-emerald-700 hover:bg-emerald-50"
@@ -205,7 +203,19 @@ function UserActionRow({
           {msg && (
             <span className="text-xs font-medium text-slate-500">{msg}</span>
           )}
-        </div>
+    </div>
+  );
+}
+
+function UserActionRow(props: {
+  user: User;
+  plans: Plan[];
+  onUpdated: (updated: User) => void;
+}) {
+  return (
+    <tr className="bg-slate-50/80">
+      <td colSpan={6} className="px-6 py-4">
+        <UserActionPanel {...props} />
       </td>
     </tr>
   );
@@ -313,7 +323,61 @@ export function UsersPanel() {
           />
         </div>
 
-        <div className="mt-5 overflow-x-auto overflow-hidden rounded-2xl border border-stone-200">
+        <div className="mt-5 grid gap-3 md:hidden">
+          {loading ? (
+            <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-8 text-center text-sm text-slate-500">
+              正在加载...
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-8 text-center text-sm text-slate-500">
+              {search ? "没有匹配的用户" : "暂无用户记录"}
+            </div>
+          ) : (
+            filtered.map((user) => (
+              <article key={user.id} className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setExpandedId(expandedId === user.id ? null : user.id)}
+                  className="w-full text-left"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-600">
+                      {user.displayName?.[0]?.toUpperCase() ?? "?"}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h4 className="font-semibold text-slate-950">{user.displayName}</h4>
+                        <StatusBadge status={user.status} />
+                      </div>
+                      <p className="mt-1 break-all text-xs leading-5 text-slate-500">{user.email}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 rounded-2xl bg-stone-50 p-3 text-sm">
+                    <MobileField label="会员" value={<MembershipBadge membership={user.membership} />} />
+                    <MobileField
+                      label="到期"
+                      value={
+                        user.membership?.isActive
+                          ? user.membership.plan.isLifetime ? "永久" : formatDate(user.membership.endAt)
+                          : "-"
+                      }
+                    />
+                    <MobileField label="注册" value={formatDate(user.createdAt)} />
+                  </div>
+                </button>
+
+                {expandedId === user.id && (
+                  <div className="mt-4 border-t border-stone-100 pt-4">
+                    <UserActionPanel user={user} plans={plans} onUpdated={handleUserUpdated} />
+                  </div>
+                )}
+              </article>
+            ))
+          )}
+        </div>
+
+        <div className="mt-5 hidden overflow-x-auto overflow-hidden rounded-2xl border border-stone-200 md:block">
           <table className="min-w-full divide-y divide-stone-200 text-left text-sm">
             <thead className="bg-stone-50 text-slate-500">
               <tr>
@@ -390,6 +454,15 @@ function StatCard({ label, value, accent }: { label: string; value: string; acce
     <div className={`rounded-[24px] border border-stone-200 bg-gradient-to-br ${cls} p-5 shadow-sm`}>
       <p className="text-sm text-slate-500">{label}</p>
       <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+function MobileField({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <span className="shrink-0 text-xs font-medium text-slate-400">{label}</span>
+      <span className="min-w-0 text-right text-xs font-medium text-slate-700">{value}</span>
     </div>
   );
 }

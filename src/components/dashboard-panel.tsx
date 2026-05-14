@@ -190,7 +190,59 @@ export function DashboardPanel() {
             </div>
           </div>
 
-          <div className="mt-5 overflow-hidden rounded-2xl border border-stone-200">
+          <div className="mt-5 grid gap-3 md:hidden">
+            {loading ? (
+              <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-8 text-center text-sm text-slate-500">
+                正在加载数据...
+              </div>
+            ) : data.licenses.length === 0 ? (
+              <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-8 text-center text-sm text-slate-500">
+                还没有卡密记录，先生成一批吧。
+              </div>
+            ) : (
+              data.licenses.map((item) => (
+                <article key={item.code} className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() => void handleCopyCode(item.code)}
+                      className="min-w-0 break-all text-left font-mono text-[13px] font-semibold text-emerald-600"
+                      title="点击复制卡密"
+                    >
+                      {item.code}
+                    </button>
+                    <span className="shrink-0 rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-slate-700">
+                      {statusLabel[item.status]}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 rounded-2xl bg-stone-50 p-3">
+                    <MobileField
+                      label="机器码"
+                      value={
+                        item.machineId ? (
+                          <button
+                            type="button"
+                            onClick={() => void handleCopyCode(item.machineId!)}
+                            className="break-all text-right font-mono text-xs text-slate-700"
+                            title="点击复制机器码"
+                          >
+                            {item.machineId}
+                          </button>
+                        ) : (
+                          "-"
+                        )
+                      }
+                    />
+                    <MobileField label="激活时间" value={formatDate(item.activatedAt)} />
+                    <MobileField label="创建时间" value={formatDate(item.createdAt)} />
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
+
+          <div className="mt-5 hidden overflow-hidden rounded-2xl border border-stone-200 md:block">
             <table className="min-w-full divide-y divide-stone-200 text-left text-sm">
               <thead className="bg-stone-50 text-slate-500">
                 <tr>
@@ -358,6 +410,15 @@ function StatCard({
     <div className={`rounded-[24px] border border-stone-200 bg-gradient-to-br ${accentClass} p-5 shadow-sm`}>
       <p className="text-sm text-slate-500">{label}</p>
       <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+function MobileField({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <span className="shrink-0 text-xs font-medium text-slate-400">{label}</span>
+      <span className="min-w-0 text-right text-xs font-medium text-slate-700">{value}</span>
     </div>
   );
 }

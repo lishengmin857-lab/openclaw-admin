@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Menu, X } from "lucide-react";
 import { OverviewPanel } from "@/components/overview-panel";
 import { OrdersPanel } from "@/components/orders-panel";
 import { QuotaFreePanel } from "@/components/quota-free-panel";
@@ -48,6 +49,7 @@ export function AdminShell() {
       : window.localStorage.getItem("openclaw-admin-role") || "super_admin";
 
   const [activeView, setActiveView] = useState<AdminView>(adminRole === "agent" ? "users" : "overview");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const adminName =
     typeof window === "undefined"
@@ -76,6 +78,11 @@ export function AdminShell() {
 
   const now = new Intl.DateTimeFormat("zh-CN", { dateStyle: "full" }).format(new Date());
 
+  function selectView(view: AdminView) {
+    setActiveView(view);
+    setMobileMenuOpen(false);
+  }
+
   function handleLogout() {
     window.sessionStorage.removeItem("openclaw-admin-auth");
     window.localStorage.removeItem("openclaw-admin-token");
@@ -102,7 +109,7 @@ export function AdminShell() {
                 <button
                   key={item.key}
                   type="button"
-                  onClick={() => setActiveView(item.key)}
+                  onClick={() => selectView(item.key)}
                   className={`w-full rounded-[22px] px-4 py-4 text-left transition ${active
                     ? "bg-white text-slate-950 shadow-[0_16px_40px_rgba(255,255,255,0.1)]"
                     : "bg-white/[0.03] text-white/82 hover:bg-white/[0.08]"
@@ -145,12 +152,96 @@ export function AdminShell() {
           </div>
         </aside>
 
+        {mobileMenuOpen ? (
+          <div className="lg:hidden">
+            <button
+              type="button"
+              aria-label="关闭菜单"
+              className="fixed inset-0 z-40 bg-slate-950/45 backdrop-blur-[2px]"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <aside className="fixed inset-y-0 left-0 z-50 flex w-[285px] max-w-[86vw] flex-col border-r border-white/10 bg-slate-950 p-4 text-white shadow-[24px_0_70px_rgba(15,23,42,0.32)]">
+              <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/45">xiezuozhushou</p>
+                    <h1 className="mt-3 text-xl font-semibold tracking-tight">后台管理台</h1>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="关闭菜单"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="rounded-full border border-white/10 p-2 text-white/75 transition hover:bg-white/10 hover:text-white"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              <nav className="mt-4 space-y-2 overflow-y-auto pr-1">
+                {filteredMenuItems.map((item) => {
+                  const active = item.key === activeView;
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => selectView(item.key)}
+                      className={`w-full rounded-[20px] px-4 py-3.5 text-left transition ${active
+                        ? "bg-white text-slate-950 shadow-[0_16px_40px_rgba(255,255,255,0.1)]"
+                        : "bg-white/[0.03] text-white/82 hover:bg-white/[0.08]"
+                        }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-semibold">{item.label}</span>
+                        {item.badge ? (
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${active ? "bg-slate-100 text-slate-600" : "bg-white/10 text-white/60"
+                              }`}
+                          >
+                            {item.badge}
+                          </span>
+                        ) : null}
+                      </div>
+                    </button>
+                  );
+                })}
+              </nav>
+
+              <div className="mt-auto rounded-[24px] border border-white/10 bg-white/5 p-4">
+                <p className="text-sm font-semibold">{adminName}</p>
+                {inviteCode ? (
+                  <p className="mt-1 text-xs font-mono text-amber-400">邀请码: {inviteCode}</p>
+                ) : (
+                  <p className="mt-1 text-xs text-white/55">当前为本地管理模式</p>
+                )}
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="mt-4 w-full rounded-full border border-white/12 px-4 py-2 text-xs font-medium text-white transition hover:bg-white/10"
+                >
+                  退出登录
+                </button>
+              </div>
+            </aside>
+          </div>
+        ) : null}
+
         <main className="flex-1 rounded-[30px] border border-stone-200/80 bg-white/80 shadow-[0_24px_80px_rgba(15,23,42,0.06)] backdrop-blur">
           <header className="border-b border-stone-200 px-5 py-5 sm:px-7">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-600">{now}</p>
-                <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">{activeItem.label}</h2>
+              <div className="flex items-start gap-3">
+                <button
+                  type="button"
+                  aria-label="打开菜单"
+                  onClick={() => setMobileMenuOpen(true)}
+                  className="mt-1 rounded-2xl border border-stone-200 bg-white p-3 text-slate-800 shadow-sm transition hover:bg-stone-50 lg:hidden"
+                >
+                  <Menu className="h-5 w-5" />
+                </button>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-600">{now}</p>
+                  <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">{activeItem.label}</h2>
+                </div>
               </div>
             </div>
           </header>
