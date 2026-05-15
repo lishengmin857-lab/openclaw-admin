@@ -32,7 +32,18 @@ type User = {
   createdAt: string;
   updatedAt: string;
   membership: Membership | null;
+  signupInviteOwnerName?: string | null;
+  articleGenerationCount?: number;
 };
+
+type PaginationState = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+type UsersPanelMode = "users" | "memberships";
 
 function getToken() {
   return typeof window === "undefined" ? "" : (window.localStorage.getItem("openclaw-admin-token") ?? "");
@@ -67,9 +78,8 @@ function StatusBadge({ status }: { status: string }) {
   const active = status === "active";
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${
-        active ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : "bg-rose-50 text-rose-600 ring-rose-200"
-      }`}
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${active ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : "bg-rose-50 text-rose-600 ring-rose-200"
+        }`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-emerald-400" : "bg-rose-400"}`} />
       {active ? "正常" : "已停用"}
@@ -147,62 +157,61 @@ function UserActionPanel({
 
   return (
     <div className="flex flex-wrap items-center gap-4">
-          {!isAgent && (
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-              <select
-                value={selectedPlanCode}
-                onChange={(e) => setSelectedPlanCode(e.target.value)}
-                className="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-400 sm:w-auto sm:py-1.5"
-                disabled={busy}
-              >
-                {plans.length === 0 && <option value="">无可用套餐</option>}
-                {plans.map((p) => (
-                  <option key={p.code} value={p.code}>
-                    {p.name}（¥{p.priceLabel}
-                    {p.isLifetime ? " · 永久" : p.durationDays ? ` · ${p.durationDays}天` : ""}）
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={grantMembership}
-                disabled={busy || plans.length === 0}
-                className="rounded-full bg-amber-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-amber-600 disabled:opacity-50 sm:py-1.5"
-              >
-                手动开通
-              </button>
-            </div>
-          )}
+      {!isAgent && (
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <select
+            value={selectedPlanCode}
+            onChange={(e) => setSelectedPlanCode(e.target.value)}
+            className="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-400 sm:w-auto sm:py-1.5"
+            disabled={busy}
+          >
+            {plans.length === 0 && <option value="">无可用套餐</option>}
+            {plans.map((p) => (
+              <option key={p.code} value={p.code}>
+                {p.name}（¥{p.priceLabel}
+                {p.isLifetime ? " · 永久" : p.durationDays ? ` · ${p.durationDays}天` : ""}）
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={grantMembership}
+            disabled={busy || plans.length === 0}
+            className="rounded-full bg-amber-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-amber-600 disabled:opacity-50 sm:py-1.5"
+          >
+            手动开通
+          </button>
+        </div>
+      )}
 
-          {!isAgent && user.membership?.isActive && (
-            <button
-              type="button"
-              onClick={revokeMembership}
-              disabled={busy}
-              className="rounded-full border border-rose-300 px-4 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-50 sm:py-1.5"
-            >
-              关闭会员
-            </button>
-          )}
+      {!isAgent && user.membership?.isActive && (
+        <button
+          type="button"
+          onClick={revokeMembership}
+          disabled={busy}
+          className="rounded-full border border-rose-300 px-4 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-50 sm:py-1.5"
+        >
+          关闭会员
+        </button>
+      )}
 
-          {!isAgent && (
-            <button
-              type="button"
-              onClick={toggleStatus}
-              disabled={busy}
-              className={`rounded-full border px-4 py-2 text-xs font-semibold transition disabled:opacity-50 sm:py-1.5 ${
-                user.status === "active"
-                  ? "border-slate-300 text-slate-600 hover:bg-slate-100"
-                  : "border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-              }`}
-            >
-              {user.status === "active" ? "停用账号" : "启用账号"}
-            </button>
-          )}
+      {!isAgent && (
+        <button
+          type="button"
+          onClick={toggleStatus}
+          disabled={busy}
+          className={`rounded-full border px-4 py-2 text-xs font-semibold transition disabled:opacity-50 sm:py-1.5 ${user.status === "active"
+            ? "border-slate-300 text-slate-600 hover:bg-slate-100"
+            : "border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+            }`}
+        >
+          {user.status === "active" ? "停用账号" : "启用账号"}
+        </button>
+      )}
 
-          {msg && (
-            <span className="text-xs font-medium text-slate-500">{msg}</span>
-          )}
+      {msg && (
+        <span className="text-xs font-medium text-slate-500">{msg}</span>
+      )}
     </div>
   );
 }
@@ -211,33 +220,56 @@ function UserActionRow(props: {
   user: User;
   plans: Plan[];
   onUpdated: (updated: User) => void;
+  colSpan: number;
 }) {
+  const { colSpan, ...panelProps } = props;
   return (
     <tr className="bg-slate-50/80">
-      <td colSpan={6} className="px-6 py-4">
-        <UserActionPanel {...props} />
+      <td colSpan={colSpan} className="px-6 py-4">
+        <UserActionPanel {...panelProps} />
       </td>
     </tr>
   );
 }
 
-export function UsersPanel() {
+const DEFAULT_PAGINATION: PaginationState = {
+  page: 1,
+  pageSize: 10,
+  total: 0,
+  totalPages: 1,
+};
+
+export function UsersPanel({ mode = "users" }: { mode?: UsersPanelMode }) {
   const adminRole = typeof window === "undefined" ? "super_admin" : window.localStorage.getItem("openclaw-admin-role");
   const isAgent = adminRole === "agent";
+  const isSuperAdmin = adminRole === "super_admin";
+  const isMembershipMode = mode === "memberships";
 
   const [users, setUsers] = useState<User[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [pagination, setPagination] = useState<PaginationState>(DEFAULT_PAGINATION);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  async function loadData() {
+  async function loadData(nextPage = pagination.page, nextSearch = debouncedSearch, nextPageSize = pagination.pageSize) {
     setLoading(true);
     setError("");
     try {
+      const params = new URLSearchParams({
+        page: String(nextPage),
+        pageSize: String(nextPageSize),
+      });
+      if (nextSearch.trim()) {
+        params.set("search", nextSearch.trim());
+      }
       const [usersRes, plansRes] = await Promise.all([
-        fetch("/api/admin/users", { headers: authHeader(), cache: "no-store" }),
+        fetch(`/api/admin/${isMembershipMode ? "memberships" : "users"}?${params.toString()}`, {
+          headers: authHeader(),
+          cache: "no-store",
+        }),
         fetch("/api/v1/plans", { cache: "no-store" }),
       ]);
 
@@ -247,8 +279,10 @@ export function UsersPanel() {
         return;
       }
 
-      const usersData = (await usersRes.json()) as { users: User[] };
+      const usersData = (await usersRes.json()) as { users: User[]; pagination?: PaginationState };
       setUsers(usersData.users);
+      setPagination(usersData.pagination ?? DEFAULT_PAGINATION);
+      setExpandedId(null);
 
       if (plansRes.ok) {
         const plansData = (await plansRes.json()) as { plans: Plan[] };
@@ -261,32 +295,42 @@ export function UsersPanel() {
     }
   }
 
-  useEffect(() => { void loadData(); }, []);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search);
+      setPagination((current) => ({ ...current, page: 1 }));
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    void loadData(pagination.page, debouncedSearch, pagination.pageSize);
+  }, [pagination.page, pagination.pageSize, debouncedSearch, isMembershipMode]);
 
   function handleUserUpdated(updated: User) {
     setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
   }
 
-  const filtered = search.trim()
-    ? users.filter(
-        (u) =>
-          u.email.toLowerCase().includes(search.toLowerCase()) ||
-          u.displayName.toLowerCase().includes(search.toLowerCase()),
-      )
-    : users;
-
-  const activeCount = users.filter((u) => u.membership?.isActive).length;
+  const pageUsers = users;
+  const activeCount = pageUsers.filter((u) => u.membership?.isActive).length;
+  const generatedTotal = pageUsers.reduce((sum, user) => sum + (user.articleGenerationCount ?? 0), 0);
+  const tableColumnCount = isSuperAdmin ? 8 : 6;
+  const title = isMembershipMode ? "会员列表" : "用户列表";
+  const eyebrow = isMembershipMode ? "Membership Center" : "User Center";
+  const description = isMembershipMode
+    ? "仅展示当前有效会员，支持查看生成次数、会员到期时间与会员操作。"
+    : `点击用户行可展开操作面板${isAgent ? "，查看用户详情并支持启用 / 停用账号" : "，支持手动开通 / 关闭会员、启用 / 停用账号"}。`;
+  const recordTitle = isMembershipMode ? "会员记录" : "用户记录";
+  const emptyText = isMembershipMode ? "暂无有效会员" : "暂无用户记录";
 
   return (
     <div className="space-y-6">
       <section className="rounded-[28px] border border-stone-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-600">User Center</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">用户列表</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-600">
-              点击用户行可展开操作面板{isAgent ? "，查看用户详情并支持启用 / 停用账号" : "，支持手动开通 / 关闭会员、启用 / 停用账号"}。
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-600">{eyebrow}</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">{title}</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-600">{description}</p>
           </div>
           <button
             type="button"
@@ -304,16 +348,20 @@ export function UsersPanel() {
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">
-        <StatCard label="注册用户" value={loading ? "-" : String(users.length)} accent="slate" />
-        <StatCard label="有效会员" value={loading ? "-" : String(activeCount)} accent="amber" />
-        <StatCard label="普通用户" value={loading ? "-" : String(users.length - activeCount)} accent="stone" />
+        <StatCard label={isMembershipMode ? "有效会员" : "注册用户"} value={loading ? "-" : String(pagination.total)} accent="slate" />
+        <StatCard label="本页会员" value={loading ? "-" : String(activeCount)} accent="amber" />
+        <StatCard
+          label={isSuperAdmin ? "本页生成次数" : "本页普通用户"}
+          value={loading ? "-" : String(isSuperAdmin ? generatedTotal : pageUsers.length - activeCount)}
+          accent="stone"
+        />
       </section>
 
       <section className="rounded-[28px] border border-stone-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-xl font-semibold text-slate-950">用户记录</h3>
-            <p className="mt-1 text-sm text-slate-500">共 {filtered.length} 条 · 点击行展开操作</p>
+            <h3 className="text-xl font-semibold text-slate-950">{recordTitle}</h3>
+            <p className="mt-1 text-sm text-slate-500">共 {pagination.total} 条 · 点击行展开操作</p>
           </div>
           <input
             value={search}
@@ -328,12 +376,12 @@ export function UsersPanel() {
             <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-8 text-center text-sm text-slate-500">
               正在加载...
             </div>
-          ) : filtered.length === 0 ? (
+          ) : pageUsers.length === 0 ? (
             <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-8 text-center text-sm text-slate-500">
-              {search ? "没有匹配的用户" : "暂无用户记录"}
+              {search ? "没有匹配的用户" : emptyText}
             </div>
           ) : (
-            filtered.map((user) => (
+            pageUsers.map((user) => (
               <article key={user.id} className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
                 <button
                   type="button"
@@ -363,6 +411,8 @@ export function UsersPanel() {
                           : "-"
                       }
                     />
+                    {isSuperAdmin && <MobileField label="邀请人" value={user.signupInviteOwnerName || "-"} />}
+                    {isSuperAdmin && <MobileField label="生成次数" value={`${user.articleGenerationCount ?? 0} 次`} />}
                     <MobileField label="注册" value={formatDate(user.createdAt)} />
                   </div>
                 </button>
@@ -386,22 +436,24 @@ export function UsersPanel() {
                 <th className="px-4 py-3 font-medium">账号状态</th>
                 <th className="px-4 py-3 font-medium">会员</th>
                 <th className="px-4 py-3 font-medium">会员到期</th>
+                {isSuperAdmin && <th className="px-4 py-3 font-medium">邀请人</th>}
+                {isSuperAdmin && <th className="px-4 py-3 font-medium">生成次数</th>}
                 <th className="px-4 py-3 font-medium">注册时间</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100 bg-white">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-slate-500">正在加载...</td>
+                  <td colSpan={tableColumnCount} className="px-4 py-10 text-center text-slate-500">正在加载...</td>
                 </tr>
-              ) : filtered.length === 0 ? (
+              ) : pageUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-slate-500">
-                    {search ? "没有匹配的用户" : "暂无用户记录"}
+                  <td colSpan={tableColumnCount} className="px-4 py-10 text-center text-slate-500">
+                    {search ? "没有匹配的用户" : emptyText}
                   </td>
                 </tr>
               ) : (
-                filtered.map((user) => (
+                pageUsers.map((user) => (
                   <Fragment key={user.id}>
                     <tr
                       onClick={() => setExpandedId(expandedId === user.id ? null : user.id)}
@@ -423,6 +475,14 @@ export function UsersPanel() {
                           ? user.membership.plan.isLifetime ? "永久" : formatDate(user.membership.endAt)
                           : "-"}
                       </td>
+                      {isSuperAdmin && (
+                        <td className="px-4 py-3 font-semibold text-slate-700">
+                          {user.signupInviteOwnerName || "-"}
+                        </td>
+                      )}
+                      {isSuperAdmin && (
+                        <td className="px-4 py-3 font-semibold text-slate-800">{user.articleGenerationCount ?? 0}</td>
+                      )}
                       <td className="px-4 py-3 text-slate-500">{formatDate(user.createdAt)}</td>
                     </tr>
                     {expandedId === user.id && (
@@ -430,6 +490,7 @@ export function UsersPanel() {
                         user={user}
                         plans={plans}
                         onUpdated={handleUserUpdated}
+                        colSpan={tableColumnCount}
                       />
                     )}
                   </Fragment>
@@ -438,7 +499,69 @@ export function UsersPanel() {
             </tbody>
           </table>
         </div>
+        <PaginationBar
+          pagination={pagination}
+          loading={loading}
+          onPageChange={(page) => setPagination((current) => ({ ...current, page }))}
+          onPageSizeChange={(pageSize) => setPagination((current) => ({ ...current, page: 1, pageSize }))}
+        />
       </section>
+    </div>
+  );
+}
+
+function PaginationBar({
+  pagination,
+  loading,
+  onPageChange,
+  onPageSizeChange,
+}: {
+  pagination: PaginationState;
+  loading: boolean;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
+}) {
+  const start = pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.pageSize + 1;
+  const end = Math.min(pagination.total, pagination.page * pagination.pageSize);
+
+  return (
+    <div className="mt-5 flex flex-col gap-3 border-t border-stone-100 pt-4 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        显示 {start}-{end} / 共 {pagination.total} 条
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          value={pagination.pageSize}
+          onChange={(event) => onPageSizeChange(Number(event.target.value))}
+          disabled={loading}
+          className="rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-amber-400 disabled:opacity-60"
+        >
+          {[10, 20, 50].map((size) => (
+            <option key={size} value={size}>
+              {size} 条/页
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={() => onPageChange(Math.max(1, pagination.page - 1))}
+          disabled={loading || pagination.page <= 1}
+          className="rounded-xl border border-stone-300 px-3 py-2 font-medium text-slate-700 transition hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-45"
+        >
+          上一页
+        </button>
+        <span className="rounded-xl bg-stone-100 px-3 py-2 font-medium text-slate-700">
+          {pagination.page} / {pagination.totalPages}
+        </span>
+        <button
+          type="button"
+          onClick={() => onPageChange(Math.min(pagination.totalPages, pagination.page + 1))}
+          disabled={loading || pagination.page >= pagination.totalPages}
+          className="rounded-xl border border-stone-300 px-3 py-2 font-medium text-slate-700 transition hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-45"
+        >
+          下一页
+        </button>
+      </div>
     </div>
   );
 }

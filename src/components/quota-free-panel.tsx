@@ -7,6 +7,7 @@ type QuotaFreeRollingSettings = {
   imagePeriodDays: number;
   textLimit: number;
   imageLimit: number;
+  deAiLimit: number;
 };
 
 const DEFAULTS: QuotaFreeRollingSettings = {
@@ -14,6 +15,7 @@ const DEFAULTS: QuotaFreeRollingSettings = {
   imagePeriodDays: 7,
   textLimit: 2,
   imageLimit: 3,
+  deAiLimit: 1,
 };
 
 function getToken() {
@@ -100,7 +102,7 @@ export function QuotaFreePanel() {
         </p>
       </div>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="rounded-[24px] border border-stone-200 bg-gradient-to-br from-stone-50 to-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">文字额度周期</p>
           <p className="mt-3 text-2xl font-semibold text-slate-950">每 {form.textPeriodDays} 天</p>
@@ -117,10 +119,14 @@ export function QuotaFreePanel() {
           <p className="text-sm text-slate-500">图片额度上限</p>
           <p className="mt-3 text-2xl font-semibold text-slate-950">{form.imageLimit} 次</p>
         </div>
+        <div className="rounded-[24px] border border-stone-200 bg-gradient-to-br from-stone-50 to-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">二次去 AI 额度</p>
+          <p className="mt-3 text-2xl font-semibold text-slate-950">{form.deAiLimit} 次</p>
+        </div>
       </section>
 
       <section className="rounded-[28px] border border-stone-200 bg-white p-6 shadow-sm space-y-5">
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
           <label className="block space-y-2">
             <span className="text-sm font-medium text-slate-700">文字更新间隔（天）</span>
             <input
@@ -177,6 +183,21 @@ export function QuotaFreePanel() {
                 const n = Number.parseInt(e.target.value, 10);
                 if (!Number.isFinite(n)) return;
                 setForm((f) => ({ ...f, imageLimit: Math.min(10000, Math.max(0, n)) }));
+              }}
+              className="w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-sky-400"
+            />
+          </label>
+          <label className="block space-y-2">
+            <span className="text-sm font-medium text-slate-700">二次去 AI 额度上限（次）</span>
+            <input
+              type="number"
+              min={0}
+              max={10000}
+              value={form.deAiLimit}
+              onChange={(e) => {
+                const n = Number.parseInt(e.target.value, 10);
+                if (!Number.isFinite(n)) return;
+                setForm((f) => ({ ...f, deAiLimit: Math.min(10000, Math.max(0, n)) }));
               }}
               className="w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-sky-400"
             />

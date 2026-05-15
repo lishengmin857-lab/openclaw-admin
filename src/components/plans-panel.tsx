@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Edit2, RefreshCw, X, Save } from "lucide-react";
+import { Edit2, Plus, RefreshCw, Trash2, X, Save } from "lucide-react";
 
 type Plan = {
   id: string;
@@ -15,6 +15,7 @@ type Plan = {
   textDailyLimit: number;
   textMonthlyLimit?: number;
   imageMonthlyLimit: number;
+  deAiMonthlyLimit: number;
   wechatAccountLimit: number;
   tagline: string;
   features: string[];
@@ -32,6 +33,7 @@ export function PlansPanel() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
+  const [modalMode, setModalMode] = useState<"create" | "edit">("edit");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -58,30 +60,55 @@ export function PlansPanel() {
   }, []);
 
   const handleEdit = (plan: Plan) => {
+    setModalMode("edit");
     setEditingPlan({ ...plan });
     setIsModalOpen(true);
   };
 
+  const handleCreate = () => {
+    setModalMode("create");
+    setEditingPlan({
+      id: "",
+      code: "",
+      name: "",
+      billingType: "monthly",
+      priceCents: 0,
+      priceLabel: "0.00",
+      isActive: true,
+      textDailyLimit: 0,
+      textMonthlyLimit: 0,
+      imageMonthlyLimit: 0,
+      deAiMonthlyLimit: 0,
+      wechatAccountLimit: 1,
+      tagline: "",
+      features: [],
+    });
+    setIsModalOpen(true);
+  };
+
   const handleSave = async () => {
-    if (!editingPlan || !editingPlan.id || editingPlan.id === "undefined") {
+    if (!editingPlan || (modalMode === "edit" && (!editingPlan.id || editingPlan.id === "undefined"))) {
       toast.error("无效的套餐 ID");
       return;
     }
     setSaving(true);
 
     try {
-      const res = await fetch(`/api/v1/admin/plans/${editingPlan.id}`, {
-        method: "PATCH",
+      const res = await fetch(modalMode === "create" ? "/api/v1/admin/plans" : `/api/v1/admin/plans/${editingPlan.id}`, {
+        method: modalMode === "create" ? "POST" : "PATCH",
         headers: {
           ...authHeader(),
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          code: editingPlan.code,
+          billingType: editingPlan.billingType,
           name: editingPlan.name,
           priceCents: editingPlan.priceCents,
           isActive: editingPlan.isActive,
           textMonthlyLimit: editingPlan.textMonthlyLimit ?? editingPlan.textDailyLimit * 30,
           imageMonthlyLimit: editingPlan.imageMonthlyLimit,
+          deAiMonthlyLimit: editingPlan.deAiMonthlyLimit,
           wechatAccountLimit: editingPlan.wechatAccountLimit,
           tagline: editingPlan.tagline,
           features: editingPlan.features,
@@ -100,6 +127,24 @@ export function PlansPanel() {
     }
   };
 
+  const handleDelete = async (plan: Plan) => {
+    if (!window.confirm(`确认删除套餐「${plan.name}」？已有订单或会员使用的套餐不能删除。`)) return;
+    try {
+      const res = await fetch(`/api/v1/admin/plans/${plan.id}`, {
+        method: "DELETE",
+        headers: authHeader(),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "DELETE_FAILED");
+      }
+      toast.success("套餐已删除");
+      fetchPlans();
+    } catch (error) {
+      toast.error(error instanceof Error && error.message === "PLAN_IN_USE" ? "该套餐已有订单或会员记录，不能删除" : "删除套餐失败");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <section className="rounded-[28px] border border-stone-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
@@ -111,6 +156,15 @@ export function PlansPanel() {
               在此管理订阅套餐的定价、额度以及展示内容。所有修改将实时同步到用户端。
             </p>
           </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={handleCreate}
+              className="flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
+            >
+              <Plus className="h-4 w-4" />
+              新增套餐
+            </button>
           <button
             type="button"
             onClick={fetchPlans}
@@ -120,6 +174,7 @@ export function PlansPanel() {
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             刷新
           </button>
+          </div>
         </div>
       </section>
 
@@ -147,6 +202,7 @@ export function PlansPanel() {
               <MobileField label="价格" value={`${plan.priceLabel} 元`} />
               <MobileField label="文章" value={`${plan.textMonthlyLimit ?? plan.textDailyLimit * 30} 篇/月`} />
               <MobileField label="图片" value={`${plan.imageMonthlyLimit} 图/月`} />
+              <MobileField label="二次去 AI" value={`${plan.deAiMonthlyLimit ?? 0} 次/月`} />
               <MobileField label="公众号" value={`${plan.wechatAccountLimit > 500 ? "∞" : plan.wechatAccountLimit} 个`} />
             </div>
 
@@ -191,6 +247,7 @@ export function PlansPanel() {
                   <div className="flex gap-2">
                     <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-indigo-700 text-xs">{plan.textMonthlyLimit ?? plan.textDailyLimit * 30} 文/月</span>
                     <span className="rounded bg-amber-50 px-1.5 py-0.5 text-amber-700 text-xs">{plan.imageMonthlyLimit} 图</span>
+                    <span className="rounded bg-sky-50 px-1.5 py-0.5 text-sky-700 text-xs">二次 {plan.deAiMonthlyLimit ?? 0}</span>
                     <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-emerald-700 text-xs">{plan.wechatAccountLimit > 500 ? '∞' : plan.wechatAccountLimit} 号</span>
                   </div>
                 </td>
@@ -209,6 +266,13 @@ export function PlansPanel() {
                     <Edit2 className="h-3.5 w-3.5" />
                     编辑
                   </button>
+                                  <button
+                    onClick={() => void handleDelete(plan)}
+                    className="mt-2 flex items-center gap-1.5 text-rose-600 hover:text-rose-800 font-medium"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    {"\u5220\u9664"}
+                  </button>
                 </td>
               </tr>
             ))}
@@ -223,7 +287,9 @@ export function PlansPanel() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm">
           <div className="w-full max-w-xl rounded-[32px] bg-white p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-slate-950">编辑套餐：{editingPlan.name}</h3>
+              <h3 className="text-xl font-bold text-slate-950">
+                {modalMode === "create" ? "新增套餐" : `编辑套餐：${editingPlan.name}`}
+              </h3>
               <button onClick={() => setIsModalOpen(false)} className="rounded-full p-1 text-slate-400 hover:bg-slate-100 transition">
                 <X className="h-5 w-5" />
               </button>
@@ -231,6 +297,17 @@ export function PlansPanel() {
 
             <div className="space-y-5">
               <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">编码</label>
+                  <input
+                    type="text"
+                    className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white transition"
+                    value={editingPlan.code}
+                    disabled={modalMode === "edit"}
+                    onChange={e => setEditingPlan({...editingPlan, code: e.target.value})}
+                    placeholder="如 basic_month"
+                  />
+                </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">名称</label>
                   <input
@@ -251,7 +328,7 @@ export function PlansPanel() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">每月文章总数</label>
                   <input
@@ -268,6 +345,15 @@ export function PlansPanel() {
                     className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white transition"
                     value={editingPlan.imageMonthlyLimit}
                     onChange={e => setEditingPlan({...editingPlan, imageMonthlyLimit: parseInt(e.target.value) || 0})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">{"\u4e8c\u6b21\u53bb AI"}</label>
+                  <input
+                    type="number"
+                    className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white transition"
+                    value={editingPlan.deAiMonthlyLimit ?? 0}
+                    onChange={e => setEditingPlan({...editingPlan, deAiMonthlyLimit: parseInt(e.target.value) || 0})}
                   />
                 </div>
                 <div>

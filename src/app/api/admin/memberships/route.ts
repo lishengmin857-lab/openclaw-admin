@@ -4,7 +4,7 @@ const upstreamBaseUrl = process.env.NODE_BACKEND_URL?.trim() || "http://127.0.0.
 
 export async function GET(request: NextRequest) {
   try {
-    const upstreamUrl = new URL(`${upstreamBaseUrl}/api/v1/admin/users`);
+    const upstreamUrl = new URL(`${upstreamBaseUrl}/api/v1/admin/memberships`);
     upstreamUrl.search = request.nextUrl.searchParams.toString();
     const response = await fetch(upstreamUrl.toString(), {
       method: "GET",

@@ -26,3 +26,24 @@ export async function PATCH(
     return NextResponse.json({ error: "UPDATE_PLAN_FAILED" }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const token = req.headers.get("authorization");
+
+  try {
+    const res = await fetch(`${NODE_BACKEND_URL}/api/v1/admin/plans/${id}`, {
+      method: "DELETE",
+      headers: {
+        ...(token ? { authorization: token } : {}),
+      },
+    });
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
+  } catch {
+    return NextResponse.json({ error: "DELETE_PLAN_FAILED" }, { status: 500 });
+  }
+}

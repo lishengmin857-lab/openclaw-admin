@@ -94,9 +94,9 @@ export function AdminShell() {
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#fff8ef_0%,#f8fafc_45%,#f3f4f6_100%)] text-slate-900">
-      <div className="mx-auto flex min-h-screen max-w-[1600px] gap-6 px-4 py-4 lg:px-6 lg:py-6">
-        <aside className="hidden w-[280px] shrink-0 rounded-[30px] border border-stone-200 bg-slate-950 p-5 text-white shadow-[0_24px_80px_rgba(15,23,42,0.22)] lg:flex lg:flex-col">
+    <div className="h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,#fff8ef_0%,#f8fafc_45%,#f3f4f6_100%)] text-slate-900">
+      <div className="mx-auto flex h-full max-w-[1600px] gap-6 px-4 py-4 lg:px-6 lg:py-6">
+        <aside className="hidden h-full w-[280px] shrink-0 rounded-[30px] border border-stone-200 bg-slate-950 p-5 text-white shadow-[0_24px_80px_rgba(15,23,42,0.22)] lg:flex lg:flex-col">
           <div className="rounded-[24px] border border-white/10 bg-white/5 p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.32em] text-white/45">xiezuozhushou</p>
             <h1 className="mt-3 text-2xl font-semibold tracking-tight">后台管理台</h1>
@@ -226,7 +226,7 @@ export function AdminShell() {
           </div>
         ) : null}
 
-        <main className="flex-1 rounded-[30px] border border-stone-200/80 bg-white/80 shadow-[0_24px_80px_rgba(15,23,42,0.06)] backdrop-blur">
+        <main className="min-h-0 flex-1 overflow-y-auto rounded-[30px] border border-stone-200/80 bg-white/80 shadow-[0_24px_80px_rgba(15,23,42,0.06)] backdrop-blur">
           <header className="border-b border-stone-200 px-5 py-5 sm:px-7">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex items-start gap-3">
@@ -258,7 +258,7 @@ function renderContent(activeView: AdminView) {
     case "users":
       return <UsersPanel />;
     case "memberships":
-      return <UsersPanel />;
+      return <UsersPanel mode="memberships" />;
     case "orders":
       return <OrdersPanel />;
     case "settings":
