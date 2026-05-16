@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useState, type ButtonHTMLAttributes } from "react";
 
 type Plan = {
   id: string;
@@ -34,6 +34,7 @@ type User = {
   membership: Membership | null;
   signupInviteOwnerName?: string | null;
   articleGenerationCount?: number;
+  lastArticleGenerationAt?: string | null;
 };
 
 type PaginationState = {
@@ -44,6 +45,7 @@ type PaginationState = {
 };
 
 type UsersPanelMode = "users" | "memberships";
+type SortMode = "usage_desc" | "last_used_desc" | "created_desc";
 
 function getToken() {
   return typeof window === "undefined" ? "" : (window.localStorage.getItem("openclaw-admin-token") ?? "");
@@ -51,6 +53,13 @@ function getToken() {
 
 function authHeader() {
   return { Authorization: `Bearer ${getToken()}` };
+}
+
+function adminErrorMessage(error: string | undefined, fallback: string) {
+  if (error === "USER_DELETE_FORBIDDEN") return "管理员或代理账号不能删除";
+  if (error === "USER_NOT_FOUND") return "用户不存在";
+  if (error === "UNAUTHORIZED" || error === "FORBIDDEN") return "没有权限操作";
+  return error ?? fallback;
 }
 
 function formatDate(value: string | null) {
@@ -87,14 +96,80 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function ConfirmAction({
+  children,
+  className,
+  confirmButtonClassName,
+  confirmLabel = "确认",
+  disabled,
+  message,
+  onConfirm,
+  type = "button",
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  confirmButtonClassName?: string;
+  confirmLabel?: string;
+  message: string;
+  onConfirm: () => void | Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <span className="relative inline-flex">
+      <button
+        type={type}
+        disabled={disabled}
+        className={className}
+        onClick={(event) => {
+          event.stopPropagation();
+          if (!disabled) setOpen((current) => !current);
+        }}
+      >
+        {children}
+      </button>
+      {open && !disabled ? (
+        <span
+          className="absolute left-0 top-full z-30 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-stone-200 bg-white p-3 text-left shadow-[0_18px_48px_rgba(15,23,42,0.16)]"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <span className="block text-sm font-medium leading-5 text-slate-800">{message}</span>
+          <span className="mt-3 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              className="rounded-full border border-stone-300 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-stone-50"
+              onClick={() => setOpen(false)}
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              className={
+                confirmButtonClassName ??
+                "rounded-full bg-slate-950 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800"
+              }
+              onClick={async () => {
+                setOpen(false);
+                await onConfirm();
+              }}
+            >
+              {confirmLabel}
+            </button>
+          </span>
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
 function UserActionPanel({
   user,
   plans,
   onUpdated,
+  onDeleted,
 }: {
   user: User;
   plans: Plan[];
   onUpdated: (updated: User) => void;
+  onDeleted: (deletedUserId: string) => void;
 }) {
   const [selectedPlanCode, setSelectedPlanCode] = useState(plans[0]?.code ?? "");
   const [busy, setBusy] = useState(false);
@@ -111,7 +186,7 @@ function UserActionPanel({
         body: JSON.stringify({ planCode: selectedPlanCode }),
       });
       const data = (await res.json()) as { ok?: boolean; membership?: Membership; error?: string };
-      if (!res.ok) { setMsg(data.error ?? "开通失败"); return; }
+      if (!res.ok) { setMsg(adminErrorMessage(data.error, "开通失败")); return; }
       onUpdated({ ...user, membership: data.membership ?? null });
       setMsg("已开通");
     } catch { setMsg("请求失败"); }
@@ -127,7 +202,7 @@ function UserActionPanel({
         headers: authHeader(),
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
-      if (!res.ok) { setMsg(data.error ?? "关闭失败"); return; }
+      if (!res.ok) { setMsg(adminErrorMessage(data.error, "关闭失败")); return; }
       onUpdated({ ...user, membership: user.membership ? { ...user.membership, isActive: false, status: "cancelled" } : null });
       setMsg("已关闭");
     } catch { setMsg("请求失败"); }
@@ -145,19 +220,34 @@ function UserActionPanel({
         body: JSON.stringify({ status: nextStatus }),
       });
       const data = (await res.json()) as { ok?: boolean; user?: User; error?: string };
-      if (!res.ok) { setMsg(data.error ?? "操作失败"); return; }
+      if (!res.ok) { setMsg(adminErrorMessage(data.error, "操作失败")); return; }
       onUpdated({ ...user, status: nextStatus });
       setMsg(nextStatus === "active" ? "已启用" : "已停用");
     } catch { setMsg("请求失败"); }
     finally { setBusy(false); }
   }
 
+  async function deleteUser() {
+    setBusy(true);
+    setMsg("");
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: "DELETE",
+        headers: authHeader(),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok) { setMsg(adminErrorMessage(data.error, "删除失败")); return; }
+      onDeleted(user.id);
+    } catch { setMsg("请求失败"); }
+    finally { setBusy(false); }
+  }
+
   const adminRole = typeof window === "undefined" ? "super_admin" : window.localStorage.getItem("openclaw-admin-role");
-  const isAgent = adminRole === "agent";
+  const isSuperAdmin = adminRole === "super_admin";
 
   return (
     <div className="flex flex-wrap items-center gap-4">
-      {!isAgent && (
+      {isSuperAdmin && (
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
           <select
             value={selectedPlanCode}
@@ -173,40 +263,57 @@ function UserActionPanel({
               </option>
             ))}
           </select>
-          <button
+          <ConfirmAction
             type="button"
-            onClick={grantMembership}
+            onConfirm={grantMembership}
             disabled={busy || plans.length === 0}
+            message={`确认给 ${user.displayName} 开通所选会员吗？`}
             className="rounded-full bg-amber-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-amber-600 disabled:opacity-50 sm:py-1.5"
           >
             手动开通
-          </button>
+          </ConfirmAction>
         </div>
       )}
 
-      {!isAgent && user.membership?.isActive && (
-        <button
+      {isSuperAdmin && user.membership?.isActive && (
+        <ConfirmAction
           type="button"
-          onClick={revokeMembership}
+          onConfirm={revokeMembership}
           disabled={busy}
+          message={`确认关闭 ${user.displayName} 的会员吗？`}
           className="rounded-full border border-rose-300 px-4 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-50 sm:py-1.5"
         >
           关闭会员
-        </button>
+        </ConfirmAction>
       )}
 
-      {!isAgent && (
-        <button
+      {isSuperAdmin && (
+        <ConfirmAction
           type="button"
-          onClick={toggleStatus}
+          onConfirm={toggleStatus}
           disabled={busy}
+          message={`确认${user.status === "active" ? "停用" : "启用"} ${user.displayName} 的账号吗？`}
           className={`rounded-full border px-4 py-2 text-xs font-semibold transition disabled:opacity-50 sm:py-1.5 ${user.status === "active"
             ? "border-slate-300 text-slate-600 hover:bg-slate-100"
             : "border-emerald-300 text-emerald-700 hover:bg-emerald-50"
             }`}
         >
           {user.status === "active" ? "停用账号" : "启用账号"}
-        </button>
+        </ConfirmAction>
+      )}
+
+      {isSuperAdmin && (
+        <ConfirmAction
+          type="button"
+          onConfirm={deleteUser}
+          disabled={busy}
+          message={`确认删除 ${user.displayName} 吗？该操作不可恢复。`}
+          confirmLabel="确认删除"
+          confirmButtonClassName="rounded-full bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-700"
+          className="rounded-full border border-red-300 px-4 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50 sm:py-1.5"
+        >
+          删除用户
+        </ConfirmAction>
       )}
 
       {msg && (
@@ -220,6 +327,7 @@ function UserActionRow(props: {
   user: User;
   plans: Plan[];
   onUpdated: (updated: User) => void;
+  onDeleted: (deletedUserId: string) => void;
   colSpan: number;
 }) {
   const { colSpan, ...panelProps } = props;
@@ -239,6 +347,12 @@ const DEFAULT_PAGINATION: PaginationState = {
   totalPages: 1,
 };
 
+const SORT_OPTIONS: Array<{ value: SortMode; label: string }> = [
+  { value: "usage_desc", label: "使用次数 从高到低" },
+  { value: "last_used_desc", label: "最近使用 从新到旧" },
+  { value: "created_desc", label: "注册时间 从新到旧" },
+];
+
 export function UsersPanel({ mode = "users" }: { mode?: UsersPanelMode }) {
   const adminRole = typeof window === "undefined" ? "super_admin" : window.localStorage.getItem("openclaw-admin-role");
   const isAgent = adminRole === "agent";
@@ -252,15 +366,22 @@ export function UsersPanel({ mode = "users" }: { mode?: UsersPanelMode }) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [pagination, setPagination] = useState<PaginationState>(DEFAULT_PAGINATION);
+  const [sortMode, setSortMode] = useState<SortMode>(isSuperAdmin ? "usage_desc" : "created_desc");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  async function loadData(nextPage = pagination.page, nextSearch = debouncedSearch, nextPageSize = pagination.pageSize) {
+  async function loadData(
+    nextPage = pagination.page,
+    nextSearch = debouncedSearch,
+    nextPageSize = pagination.pageSize,
+    nextSort = sortMode,
+  ) {
     setLoading(true);
     setError("");
     try {
       const params = new URLSearchParams({
         page: String(nextPage),
         pageSize: String(nextPageSize),
+        sort: nextSort,
       });
       if (nextSearch.trim()) {
         params.set("search", nextSearch.trim());
@@ -304,22 +425,40 @@ export function UsersPanel({ mode = "users" }: { mode?: UsersPanelMode }) {
   }, [search]);
 
   useEffect(() => {
-    void loadData(pagination.page, debouncedSearch, pagination.pageSize);
-  }, [pagination.page, pagination.pageSize, debouncedSearch, isMembershipMode]);
+    void loadData(pagination.page, debouncedSearch, pagination.pageSize, sortMode);
+  }, [pagination.page, pagination.pageSize, debouncedSearch, sortMode, isMembershipMode]);
 
   function handleUserUpdated(updated: User) {
     setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
   }
 
+  function handleUserDeleted(deletedUserId: string) {
+    setUsers((prev) => prev.filter((u) => u.id !== deletedUserId));
+    setExpandedId(null);
+    setPagination((current) => {
+      const total = Math.max(0, current.total - 1);
+      const totalPages = Math.max(1, Math.ceil(total / current.pageSize));
+      return {
+        ...current,
+        page: Math.min(current.page, totalPages),
+        total,
+        totalPages,
+      };
+    });
+  }
+
   const pageUsers = users;
   const activeCount = pageUsers.filter((u) => u.membership?.isActive).length;
   const generatedTotal = pageUsers.reduce((sum, user) => sum + (user.articleGenerationCount ?? 0), 0);
-  const tableColumnCount = isSuperAdmin ? 8 : 6;
+  const canManageUsers = isSuperAdmin;
+  const tableColumnCount = isSuperAdmin ? 9 : 6;
   const title = isMembershipMode ? "会员列表" : "用户列表";
   const eyebrow = isMembershipMode ? "Membership Center" : "User Center";
   const description = isMembershipMode
     ? "仅展示当前有效会员，支持查看生成次数、会员到期时间与会员操作。"
-    : `点击用户行可展开操作面板${isAgent ? "，查看用户详情并支持启用 / 停用账号" : "，支持手动开通 / 关闭会员、启用 / 停用账号"}。`;
+    : canManageUsers
+      ? "点击用户行可展开操作面板，支持手动开通 / 关闭会员、启用 / 停用账号和删除用户。"
+      : "查看用户详情，操作权限仅超管可用。";
   const recordTitle = isMembershipMode ? "会员记录" : "用户记录";
   const emptyText = isMembershipMode ? "暂无有效会员" : "暂无用户记录";
 
@@ -361,14 +500,34 @@ export function UsersPanel({ mode = "users" }: { mode?: UsersPanelMode }) {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-xl font-semibold text-slate-950">{recordTitle}</h3>
-            <p className="mt-1 text-sm text-slate-500">共 {pagination.total} 条 · 点击行展开操作</p>
+            <p className="mt-1 text-sm text-slate-500">
+              共 {pagination.total} 条{canManageUsers ? " · 点击行展开操作" : ""}
+            </p>
           </div>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="搜索邮箱 / 昵称"
-            className="w-full rounded-2xl border border-stone-300 px-4 py-2.5 text-sm outline-none transition focus:border-amber-400 sm:w-64"
-          />
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+            {isSuperAdmin && (
+              <select
+                value={sortMode}
+                onChange={(event) => {
+                  setSortMode(event.target.value as SortMode);
+                  setPagination((current) => ({ ...current, page: 1 }));
+                }}
+                className="w-full rounded-2xl border border-stone-300 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-amber-400 sm:w-56"
+              >
+                {SORT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            )}
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="搜索邮箱 / 昵称"
+              className="w-full rounded-2xl border border-stone-300 px-4 py-2.5 text-sm outline-none transition focus:border-amber-400 sm:w-64"
+            />
+          </div>
         </div>
 
         <div className="mt-5 grid gap-3 md:hidden">
@@ -385,8 +544,10 @@ export function UsersPanel({ mode = "users" }: { mode?: UsersPanelMode }) {
               <article key={user.id} className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
                 <button
                   type="button"
-                  onClick={() => setExpandedId(expandedId === user.id ? null : user.id)}
-                  className="w-full text-left"
+                  onClick={() => {
+                    if (canManageUsers) setExpandedId(expandedId === user.id ? null : user.id);
+                  }}
+                  className={`w-full text-left ${canManageUsers ? "" : "cursor-default"}`}
                 >
                   <div className="flex items-start gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-600">
@@ -413,13 +574,14 @@ export function UsersPanel({ mode = "users" }: { mode?: UsersPanelMode }) {
                     />
                     {isSuperAdmin && <MobileField label="邀请人" value={user.signupInviteOwnerName || "-"} />}
                     {isSuperAdmin && <MobileField label="生成次数" value={`${user.articleGenerationCount ?? 0} 次`} />}
+                    {isSuperAdmin && <MobileField label="最近使用" value={formatDate(user.lastArticleGenerationAt ?? null)} />}
                     <MobileField label="注册" value={formatDate(user.createdAt)} />
                   </div>
                 </button>
 
-                {expandedId === user.id && (
+                {canManageUsers && expandedId === user.id && (
                   <div className="mt-4 border-t border-stone-100 pt-4">
-                    <UserActionPanel user={user} plans={plans} onUpdated={handleUserUpdated} />
+                    <UserActionPanel user={user} plans={plans} onUpdated={handleUserUpdated} onDeleted={handleUserDeleted} />
                   </div>
                 )}
               </article>
@@ -438,6 +600,7 @@ export function UsersPanel({ mode = "users" }: { mode?: UsersPanelMode }) {
                 <th className="px-4 py-3 font-medium">会员到期</th>
                 {isSuperAdmin && <th className="px-4 py-3 font-medium">邀请人</th>}
                 {isSuperAdmin && <th className="px-4 py-3 font-medium">生成次数</th>}
+                {isSuperAdmin && <th className="px-4 py-3 font-medium">最近使用</th>}
                 <th className="px-4 py-3 font-medium">注册时间</th>
               </tr>
             </thead>
@@ -456,8 +619,10 @@ export function UsersPanel({ mode = "users" }: { mode?: UsersPanelMode }) {
                 pageUsers.map((user) => (
                   <Fragment key={user.id}>
                     <tr
-                      onClick={() => setExpandedId(expandedId === user.id ? null : user.id)}
-                      className="cursor-pointer transition hover:bg-amber-50/40"
+                      onClick={() => {
+                        if (canManageUsers) setExpandedId(expandedId === user.id ? null : user.id);
+                      }}
+                      className={canManageUsers ? "cursor-pointer transition hover:bg-amber-50/40" : ""}
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
@@ -483,13 +648,17 @@ export function UsersPanel({ mode = "users" }: { mode?: UsersPanelMode }) {
                       {isSuperAdmin && (
                         <td className="px-4 py-3 font-semibold text-slate-800">{user.articleGenerationCount ?? 0}</td>
                       )}
+                      {isSuperAdmin && (
+                        <td className="px-4 py-3 text-slate-500">{formatDate(user.lastArticleGenerationAt ?? null)}</td>
+                      )}
                       <td className="px-4 py-3 text-slate-500">{formatDate(user.createdAt)}</td>
                     </tr>
-                    {expandedId === user.id && (
+                    {canManageUsers && expandedId === user.id && (
                       <UserActionRow
                         user={user}
                         plans={plans}
                         onUpdated={handleUserUpdated}
+                        onDeleted={handleUserDeleted}
                         colSpan={tableColumnCount}
                       />
                     )}
