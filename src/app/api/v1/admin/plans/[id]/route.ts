@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { errorPayload } from "@/lib/api-errors";
 
 const NODE_BACKEND_URL = process.env.NODE_BACKEND_URL || "http://localhost:3100";
 
@@ -8,10 +9,10 @@ export async function PATCH(
 ) {
   const { id } = await params;
   const token = req.headers.get("authorization");
-  const body = await req.json();
   console.log(`[proxy] Updating plan with ID: "${id}"`);
 
   try {
+    const body = await req.json();
     const res = await fetch(`${NODE_BACKEND_URL}/api/v1/admin/plans/${id}`, {
       method: "PATCH",
       headers: {
@@ -22,8 +23,8 @@ export async function PATCH(
     });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
-  } catch (err) {
-    return NextResponse.json({ error: "UPDATE_PLAN_FAILED" }, { status: 500 });
+  } catch {
+    return NextResponse.json(errorPayload("UPDATE_PLAN_FAILED"), { status: 500 });
   }
 }
 
@@ -44,6 +45,6 @@ export async function DELETE(
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch {
-    return NextResponse.json({ error: "DELETE_PLAN_FAILED" }, { status: 500 });
+    return NextResponse.json(errorPayload("DELETE_PLAN_FAILED"), { status: 500 });
   }
 }

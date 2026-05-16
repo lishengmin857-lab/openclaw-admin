@@ -98,7 +98,7 @@ export function QuotaFreePanel() {
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-600">Quota · Free Tier</p>
         <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">免费额度重置周期</h2>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-          仅影响「未开通会员」账号：从每个周期锚点日起算，满 N 天后文字或图片已用次数清零并进入新周期。已开通会员仍按自然日（文字）与自然月（图片）计算，不受此处影响。
+          仅影响「未开通会员」账号：从每个周期锚点日起算，满 N 天后文字或图片已用次数清零并进入新周期。已开通会员按套餐总额度累计扣减，不受此处影响。
         </p>
       </div>
 

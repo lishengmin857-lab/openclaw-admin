@@ -95,14 +95,14 @@ export function AdminShell() {
 
   return (
     <div className="h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,#fff8ef_0%,#f8fafc_45%,#f3f4f6_100%)] text-slate-900">
-      <div className="mx-auto flex h-full max-w-[1600px] gap-6 px-4 py-4 lg:px-6 lg:py-6">
-        <aside className="hidden h-full w-[280px] shrink-0 rounded-[30px] border border-stone-200 bg-slate-950 p-5 text-white shadow-[0_24px_80px_rgba(15,23,42,0.22)] lg:flex lg:flex-col">
+      <div className="mx-auto flex h-full max-w-[1680px] gap-4 px-3 py-3 lg:px-4 lg:py-4">
+        <aside className="hidden h-full w-[244px] shrink-0 rounded-[24px] border border-stone-200 bg-slate-950 p-4 text-white shadow-[0_24px_80px_rgba(15,23,42,0.22)] lg:flex lg:flex-col">
           <div className="rounded-[24px] border border-white/10 bg-white/5 p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.32em] text-white/45">xiezuozhushou</p>
             <h1 className="mt-3 text-2xl font-semibold tracking-tight">后台管理台</h1>
           </div>
 
-          <nav className="mt-5 space-y-2">
+          <nav className="mt-4 min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
             {filteredMenuItems.map((item) => {
               const active = item.key === activeView;
               return (
@@ -110,16 +110,16 @@ export function AdminShell() {
                   key={item.key}
                   type="button"
                   onClick={() => selectView(item.key)}
-                  className={`w-full rounded-[22px] px-4 py-4 text-left transition ${active
+                  className={`w-full rounded-[16px] px-3.5 py-3 text-left transition ${active
                     ? "bg-white text-slate-950 shadow-[0_16px_40px_rgba(255,255,255,0.1)]"
                     : "bg-white/[0.03] text-white/82 hover:bg-white/[0.08]"
                     }`}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm font-semibold">{item.label}</span>
+                    <span className="text-[13px] font-semibold">{item.label}</span>
                     {item.badge ? (
                       <span
-                        className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${active ? "bg-slate-100 text-slate-600" : "bg-white/10 text-white/60"
+                          className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] ${active ? "bg-slate-100 text-slate-600" : "bg-white/10 text-white/60"
                           }`}
                       >
                         {item.badge}
@@ -131,9 +131,9 @@ export function AdminShell() {
             })}
           </nav>
 
-          <div className="mt-auto rounded-[24px] border border-white/10 bg-white/5 p-5">
-            <div className="mt-3 flex items-center justify-between">
-              <div>
+          <div className="mt-4 rounded-[20px] border border-white/10 bg-white/5 p-4">
+            <div className="flex flex-col gap-3">
+              <div className="min-w-0">
                 <p className="text-sm font-semibold">{adminName}</p>
                 {inviteCode ? (
                   <p className="mt-1 text-xs font-mono text-amber-400">邀请码: {inviteCode}</p>
@@ -144,7 +144,7 @@ export function AdminShell() {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="rounded-full border border-white/12 px-4 py-2 text-xs font-medium text-white transition hover:bg-white/10"
+                className="w-full rounded-full border border-white/12 px-4 py-2 text-xs font-medium text-white transition hover:bg-white/10"
               >
                 退出登录
               </button>
@@ -226,8 +226,8 @@ export function AdminShell() {
           </div>
         ) : null}
 
-        <main className="min-h-0 flex-1 overflow-y-auto rounded-[30px] border border-stone-200/80 bg-white/80 shadow-[0_24px_80px_rgba(15,23,42,0.06)] backdrop-blur">
-          <header className="border-b border-stone-200 px-5 py-5 sm:px-7">
+        <main className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-stone-200/80 bg-white/80 shadow-[0_24px_80px_rgba(15,23,42,0.06)] backdrop-blur">
+          <header className="shrink-0 border-b border-stone-200 px-4 py-4 sm:px-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex items-start gap-3">
                 <button
@@ -239,14 +239,14 @@ export function AdminShell() {
                   <Menu className="h-5 w-5" />
                 </button>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-600">{now}</p>
-                  <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">{activeItem.label}</h2>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-600">{now}</p>
+                  <h2 className="mt-1.5 text-2xl font-semibold tracking-tight text-slate-950">{activeItem.label}</h2>
                 </div>
               </div>
             </div>
           </header>
 
-          <div className="px-5 py-5 sm:px-7 sm:py-7">{renderContent(activeView)}</div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">{renderContent(activeView)}</div>
         </main>
       </div>
     </div>

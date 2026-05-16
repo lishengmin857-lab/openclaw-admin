@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { errorPayload } from "@/lib/api-errors";
 
 const upstreamBaseUrl = process.env.NODE_BACKEND_URL?.trim() || "http://127.0.0.1:3100";
 
@@ -14,6 +15,6 @@ export async function GET(request: NextRequest) {
       headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
     });
   } catch {
-    return NextResponse.json({ error: "UPSTREAM_UNREACHABLE" }, { status: 502 });
+    return NextResponse.json(errorPayload("UPSTREAM_UNREACHABLE"), { status: 502 });
   }
 }

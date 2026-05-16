@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
+import { errorPayload } from "@/lib/api-errors";
 import { generateLicenses, getLicenseDashboard, syncOpenClawLicensePool } from "@/lib/licenses";
 
 export async function GET() {
-  const data = await getLicenseDashboard();
-  return NextResponse.json(data);
+  try {
+    const data = await getLicenseDashboard();
+    return NextResponse.json(data);
+  } catch {
+    return NextResponse.json(errorPayload("FETCH_LICENSES_FAILED"), { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -12,14 +17,14 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "INVALID_JSON" }, { status: 400 });
+    return NextResponse.json(errorPayload("INVALID_JSON"), { status: 400 });
   }
 
   const payload = body as { count?: number; prefix?: string };
   const count = Number(payload.count);
 
   if (!Number.isFinite(count) || count <= 0) {
-    return NextResponse.json({ error: "INVALID_COUNT" }, { status: 400 });
+    return NextResponse.json(errorPayload("INVALID_COUNT"), { status: 400 });
   }
 
   try {
@@ -31,6 +36,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, created, sync });
   } catch {
-    return NextResponse.json({ error: "SYNC_OPENCLAW_FAILED" }, { status: 500 });
+    return NextResponse.json(errorPayload("SYNC_OPENCLAW_FAILED"), { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { Edit2, Plus, RefreshCw, Trash2, X, Save } from "lucide-react";
 
@@ -12,6 +13,8 @@ type Plan = {
   priceCents: number;
   priceLabel: string;
   isActive: boolean;
+  planCategory?: "text_only" | "text_image";
+  supportsImage?: boolean;
   textDailyLimit: number;
   textMonthlyLimit?: number;
   imageMonthlyLimit: number;
@@ -21,12 +24,33 @@ type Plan = {
   features: string[];
 };
 
+const PLAN_NAME_OPTIONS = ["基础月卡", "进阶季卡", "至尊年卡"] as const;
+
+function normalizeAdminPlanName(value: string) {
+  const raw = String(value || "").trim();
+  if ((PLAN_NAME_OPTIONS as readonly string[]).includes(raw)) {
+    return raw;
+  }
+  if (raw.includes("至尊") && raw.includes("年")) return "至尊年卡";
+  if (raw.includes("进阶季卡") || raw.includes("进阶月卡")) return "进阶季卡";
+  if (raw.includes("基础月卡")) return "基础月卡";
+  return PLAN_NAME_OPTIONS[0];
+}
+
 function getToken() {
   return typeof window === "undefined" ? "" : (window.localStorage.getItem("openclaw-admin-token") ?? "");
 }
 
 function authHeader() {
   return { Authorization: `Bearer ${getToken()}` };
+}
+
+function getPlanCategory(plan: Pick<Plan, "planCategory" | "imageMonthlyLimit">) {
+  return plan.planCategory ?? (plan.imageMonthlyLimit > 0 ? "text_image" : "text_only");
+}
+
+function getPlanCategoryLabel(plan: Pick<Plan, "planCategory" | "imageMonthlyLimit">) {
+  return getPlanCategory(plan) === "text_only" ? "文案创作" : "图文创作";
 }
 
 export function PlansPanel() {
@@ -36,6 +60,7 @@ export function PlansPanel() {
   const [modalMode, setModalMode] = useState<"create" | "edit">("edit");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const fetchPlans = async () => {
     setLoading(true);
@@ -56,12 +81,22 @@ export function PlansPanel() {
   };
 
   useEffect(() => {
+    setMounted(true);
     fetchPlans();
   }, []);
 
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isModalOpen]);
+
   const handleEdit = (plan: Plan) => {
     setModalMode("edit");
-    setEditingPlan({ ...plan });
+    setEditingPlan({ ...plan, name: normalizeAdminPlanName(plan.name) });
     setIsModalOpen(true);
   };
 
@@ -70,11 +105,13 @@ export function PlansPanel() {
     setEditingPlan({
       id: "",
       code: "",
-      name: "",
+      name: PLAN_NAME_OPTIONS[0],
       billingType: "monthly",
       priceCents: 0,
       priceLabel: "0.00",
       isActive: true,
+      planCategory: "text_only",
+      supportsImage: false,
       textDailyLimit: 0,
       textMonthlyLimit: 0,
       imageMonthlyLimit: 0,
@@ -94,6 +131,8 @@ export function PlansPanel() {
     setSaving(true);
 
     try {
+      const planCategory = getPlanCategory(editingPlan);
+      const planName = normalizeAdminPlanName(editingPlan.name);
       const res = await fetch(modalMode === "create" ? "/api/v1/admin/plans" : `/api/v1/admin/plans/${editingPlan.id}`, {
         method: modalMode === "create" ? "POST" : "PATCH",
         headers: {
@@ -103,11 +142,12 @@ export function PlansPanel() {
         body: JSON.stringify({
           code: editingPlan.code,
           billingType: editingPlan.billingType,
-          name: editingPlan.name,
+          name: planName,
           priceCents: editingPlan.priceCents,
           isActive: editingPlan.isActive,
+          planCategory,
           textMonthlyLimit: editingPlan.textMonthlyLimit ?? editingPlan.textDailyLimit * 30,
-          imageMonthlyLimit: editingPlan.imageMonthlyLimit,
+          imageMonthlyLimit: planCategory === "text_only" ? 0 : editingPlan.imageMonthlyLimit,
           deAiMonthlyLimit: editingPlan.deAiMonthlyLimit,
           wechatAccountLimit: editingPlan.wechatAccountLimit,
           tagline: editingPlan.tagline,
@@ -190,6 +230,7 @@ export function PlansPanel() {
                   {plan.name}
                 </h3>
                 <p className="mt-1 break-all font-mono text-xs text-slate-500">{plan.code}</p>
+                <p className="mt-2 text-xs font-semibold text-slate-500">{getPlanCategoryLabel(plan)}</p>
               </div>
               <span className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
                 plan.isActive ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
@@ -200,9 +241,9 @@ export function PlansPanel() {
 
             <div className="mt-4 grid gap-3 rounded-2xl bg-stone-50 p-3">
               <MobileField label="价格" value={`${plan.priceLabel} 元`} />
-              <MobileField label="文章" value={`${plan.textMonthlyLimit ?? plan.textDailyLimit * 30} 篇/月`} />
-              <MobileField label="图片" value={`${plan.imageMonthlyLimit} 图/月`} />
-              <MobileField label="二次去 AI" value={`${plan.deAiMonthlyLimit ?? 0} 次/月`} />
+              <MobileField label="文章" value={`${plan.textMonthlyLimit ?? plan.textDailyLimit * 30} 篇`} />
+              <MobileField label="图片" value={`${plan.imageMonthlyLimit} 图`} />
+              <MobileField label="二次去 AI" value={`${plan.deAiMonthlyLimit ?? 0} 次`} />
               <MobileField label="公众号" value={`${plan.wechatAccountLimit > 500 ? "∞" : plan.wechatAccountLimit} 个`} />
             </div>
 
@@ -239,13 +280,14 @@ export function PlansPanel() {
                 <td className="px-6 py-4">
                   <div className={`font-semibold ${plan.isActive ? "text-slate-950" : "text-slate-500"}`}>{plan.name}</div>
                   <div className="text-xs text-slate-500 font-mono">{plan.code}</div>
+                  <div className="mt-1 text-xs font-semibold text-slate-500">{getPlanCategoryLabel(plan)}</div>
                 </td>
                 <td className={`px-6 py-4 font-medium ${plan.isActive ? "text-slate-700" : "text-slate-500"}`}>
                   {plan.priceLabel} 元
                 </td>
                 <td className={`px-6 py-4 ${plan.isActive ? "text-slate-600" : "text-slate-500"}`}>
                   <div className="flex gap-2">
-                    <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-indigo-700 text-xs">{plan.textMonthlyLimit ?? plan.textDailyLimit * 30} 文/月</span>
+                    <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-indigo-700 text-xs">{plan.textMonthlyLimit ?? plan.textDailyLimit * 30} 文</span>
                     <span className="rounded bg-amber-50 px-1.5 py-0.5 text-amber-700 text-xs">{plan.imageMonthlyLimit} 图</span>
                     <span className="rounded bg-sky-50 px-1.5 py-0.5 text-sky-700 text-xs">二次 {plan.deAiMonthlyLimit ?? 0}</span>
                     <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-emerald-700 text-xs">{plan.wechatAccountLimit > 500 ? '∞' : plan.wechatAccountLimit} 号</span>
@@ -283,10 +325,10 @@ export function PlansPanel() {
         )}
       </div>
 
-      {isModalOpen && editingPlan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm">
-          <div className="w-full max-w-xl rounded-[32px] bg-white p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center justify-between mb-6">
+      {mounted && isModalOpen && editingPlan && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-950/45 p-3 backdrop-blur-sm sm:p-5">
+          <div className="max-h-[calc(100vh-32px)] w-full max-w-3xl overflow-y-auto rounded-[24px] bg-white shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-stone-100 bg-white px-6 py-4">
               <h3 className="text-xl font-bold text-slate-950">
                 {modalMode === "create" ? "新增套餐" : `编辑套餐：${editingPlan.name}`}
               </h3>
@@ -295,7 +337,7 @@ export function PlansPanel() {
               </button>
             </div>
 
-            <div className="space-y-5">
+            <div className="space-y-4 px-6 py-5">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">编码</label>
@@ -310,12 +352,15 @@ export function PlansPanel() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">名称</label>
-                  <input
-                    type="text"
+                  <select
                     className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white transition"
                     value={editingPlan.name}
                     onChange={e => setEditingPlan({...editingPlan, name: e.target.value})}
-                  />
+                  >
+                    {PLAN_NAME_OPTIONS.map((name) => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">价格 (单位: 分)</label>
@@ -326,11 +371,30 @@ export function PlansPanel() {
                     onChange={e => setEditingPlan({...editingPlan, priceCents: parseInt(e.target.value) || 0})}
                   />
                 </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">套餐类型</label>
+                  <select
+                    className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white transition"
+                    value={getPlanCategory(editingPlan)}
+                    onChange={e => {
+                      const planCategory = e.target.value as "text_only" | "text_image";
+                      setEditingPlan({
+                        ...editingPlan,
+                        planCategory,
+                        supportsImage: planCategory === "text_image",
+                        imageMonthlyLimit: planCategory === "text_only" ? 0 : editingPlan.imageMonthlyLimit,
+                      });
+                    }}
+                  >
+                    <option value="text_only">文案创作</option>
+                    <option value="text_image">图文创作</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">每月文章总数</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">文章总数</label>
                   <input
                     type="number"
                     className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white transition"
@@ -339,11 +403,12 @@ export function PlansPanel() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">每月图片</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">图片总数</label>
                   <input
                     type="number"
                     className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white transition"
                     value={editingPlan.imageMonthlyLimit}
+                    disabled={getPlanCategory(editingPlan) === "text_only"}
                     onChange={e => setEditingPlan({...editingPlan, imageMonthlyLimit: parseInt(e.target.value) || 0})}
                   />
                 </div>
@@ -411,7 +476,7 @@ export function PlansPanel() {
                 />
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="sticky bottom-0 -mx-6 flex gap-3 border-t border-stone-100 bg-white px-6 py-4">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
@@ -431,7 +496,8 @@ export function PlansPanel() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
