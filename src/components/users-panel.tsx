@@ -55,6 +55,15 @@ function authHeader() {
   return { Authorization: `Bearer ${getToken()}` };
 }
 
+function canGrantMembershipForRole(adminRole: string | null) {
+  if (adminRole === "super_admin") return true;
+  return (
+    adminRole === "agent" &&
+    typeof window !== "undefined" &&
+    window.localStorage.getItem("openclaw-admin-can-grant-membership") === "1"
+  );
+}
+
 function adminErrorMessage(error: string | undefined, fallback: string) {
   if (error === "USER_DELETE_FORBIDDEN") return "管理员或代理账号不能删除";
   if (error === "USER_NOT_FOUND") return "用户不存在";
@@ -244,10 +253,11 @@ function UserActionPanel({
 
   const adminRole = typeof window === "undefined" ? "super_admin" : window.localStorage.getItem("openclaw-admin-role");
   const isSuperAdmin = adminRole === "super_admin";
+  const canGrantMembership = canGrantMembershipForRole(adminRole);
 
   return (
     <div className="flex flex-wrap items-center gap-4">
-      {isSuperAdmin && (
+      {canGrantMembership && (
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
           <select
             value={selectedPlanCode}
@@ -357,6 +367,7 @@ export function UsersPanel({ mode = "users" }: { mode?: UsersPanelMode }) {
   const adminRole = typeof window === "undefined" ? "super_admin" : window.localStorage.getItem("openclaw-admin-role");
   const isAgent = adminRole === "agent";
   const isSuperAdmin = adminRole === "super_admin";
+  const canGrantMembership = canGrantMembershipForRole(adminRole);
   const isMembershipMode = mode === "memberships";
 
   const [users, setUsers] = useState<User[]>([]);
@@ -450,14 +461,16 @@ export function UsersPanel({ mode = "users" }: { mode?: UsersPanelMode }) {
   const pageUsers = users;
   const activeCount = pageUsers.filter((u) => u.membership?.isActive).length;
   const generatedTotal = pageUsers.reduce((sum, user) => sum + (user.articleGenerationCount ?? 0), 0);
-  const canManageUsers = isSuperAdmin;
+  const canManageUsers = isSuperAdmin || (isAgent && canGrantMembership);
   const tableColumnCount = isSuperAdmin ? 9 : 6;
   const title = isMembershipMode ? "会员列表" : "用户列表";
   const eyebrow = isMembershipMode ? "Membership Center" : "User Center";
   const description = isMembershipMode
     ? "仅展示当前有效会员，支持查看生成次数、会员到期时间与会员操作。"
-    : canManageUsers
+    : isSuperAdmin
       ? "点击用户行可展开操作面板，支持手动开通 / 关闭会员、启用 / 停用账号和删除用户。"
+      : canManageUsers
+        ? "点击用户行可展开操作面板，支持给名下用户手动开通会员。"
       : "查看用户详情，操作权限仅超管可用。";
   const recordTitle = isMembershipMode ? "会员记录" : "用户记录";
   const emptyText = isMembershipMode ? "暂无有效会员" : "暂无用户记录";

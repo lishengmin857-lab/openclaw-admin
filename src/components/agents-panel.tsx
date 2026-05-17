@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, RefreshCcw, Trash2, Power, Users, Edit3, X, Check, Mail, Lock } from "lucide-react";
+import { Plus, RefreshCcw, Trash2, Power, Users, Edit3, X, Check, Mail, Lock, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 interface Agent {
@@ -10,6 +10,7 @@ interface Agent {
   email: string;
   inviteCode: string;
   contactWechat?: string;
+  canGrantMembership: boolean;
   status: string;
   createdAt: string;
   userCount: number;
@@ -28,6 +29,7 @@ export function AgentsPanel() {
   const [formEmail, setFormEmail] = useState("");
   const [formPassword, setFormPassword] = useState("");
   const [formContactWechat, setFormContactWechat] = useState("");
+  const [formCanGrantMembership, setFormCanGrantMembership] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const fetchAgents = async () => {
@@ -69,6 +71,7 @@ export function AgentsPanel() {
           email: formEmail.trim(),
           password: formPassword.trim(),
           contactWechat: formContactWechat.trim(),
+          canGrantMembership: formCanGrantMembership,
         }),
       });
       const data = await res.json();
@@ -79,6 +82,7 @@ export function AgentsPanel() {
         setFormEmail("");
         setFormPassword("");
         setFormContactWechat("");
+        setFormCanGrantMembership(false);
         fetchAgents();
       } else {
         toast.error(data.error || "创建失败");
@@ -102,7 +106,11 @@ export function AgentsPanel() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name: formName.trim(), contactWechat: formContactWechat.trim() }),
+        body: JSON.stringify({
+          name: formName.trim(),
+          contactWechat: formContactWechat.trim(),
+          canGrantMembership: formCanGrantMembership,
+        }),
       });
       if (res.ok) {
         toast.success("代理信息已更新");
@@ -110,6 +118,7 @@ export function AgentsPanel() {
         setCurrentAgent(null);
         setFormName("");
         setFormContactWechat("");
+        setFormCanGrantMembership(false);
         fetchAgents();
       } else {
         toast.error("更新失败");
@@ -142,6 +151,29 @@ export function AgentsPanel() {
     }
   };
 
+  const handleToggleMembershipGrant = async (id: string, currentValue: boolean) => {
+    try {
+      const token = window.localStorage.getItem("openclaw-admin-token");
+      const res = await fetch(`/api/v1/admin/agents/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ canGrantMembership: !currentValue }),
+      });
+      if (!res.ok) {
+        toast.error("权限更新失败");
+        return;
+      }
+      toast.success(!currentValue ? "已开启会员开通权限" : "已关闭会员开通权限");
+      fetchAgents();
+    } catch (err) {
+      toast.error("操作失败");
+      console.error(err);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("确定要删除此代理吗？关联的用户账号不会被删除，但该代理将无法继续管理。")) return;
     try {
@@ -163,6 +195,7 @@ export function AgentsPanel() {
     setFormEmail("");
     setFormPassword("");
     setFormContactWechat("");
+    setFormCanGrantMembership(false);
     setIsAddModalOpen(true);
   };
 
@@ -170,6 +203,7 @@ export function AgentsPanel() {
     setCurrentAgent(agent);
     setFormName(agent.name);
     setFormContactWechat(agent.contactWechat ?? "");
+    setFormCanGrantMembership(Boolean(agent.canGrantMembership));
     setIsEditModalOpen(true);
   };
 
@@ -236,16 +270,41 @@ export function AgentsPanel() {
                   }
                 />
                 <MobileField label="已邀请" value={`${agent.userCount}`} />
+                <MobileField
+                  label="开通会员权限"
+                  value={
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                        agent.canGrantMembership
+                          ? "border border-sky-100 bg-sky-50 text-sky-700"
+                          : "border border-stone-200 bg-white text-stone-500"
+                      }`}
+                    >
+                      {agent.canGrantMembership ? "已开启" : "未开启"}
+                    </span>
+                  }
+                />
                 <MobileField label="创建日期" value={new Date(agent.createdAt).toLocaleDateString()} />
               </div>
 
-              <div className="mt-4 grid grid-cols-3 gap-2">
+              <div className="mt-4 grid grid-cols-2 gap-2">
                 <button
                   onClick={() => openEditModal(agent)}
                   className="flex items-center justify-center gap-1 rounded-2xl border border-stone-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-600 shadow-sm"
                 >
                   <Edit3 className="h-3.5 w-3.5" />
                   编辑
+                </button>
+                <button
+                  onClick={() => handleToggleMembershipGrant(agent.id, agent.canGrantMembership)}
+                  className={`flex items-center justify-center gap-1 rounded-2xl border bg-white px-3 py-2.5 text-xs font-semibold shadow-sm ${
+                    agent.canGrantMembership
+                      ? "border-sky-200 text-sky-600"
+                      : "border-stone-200 text-slate-600"
+                  }`}
+                >
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  {agent.canGrantMembership ? "关权限" : "开权限"}
                 </button>
                 <button
                   onClick={() => handleToggleStatus(agent.id, agent.status)}
@@ -271,14 +330,15 @@ export function AgentsPanel() {
         )}
       </div>
 
-      <div className="hidden overflow-hidden rounded-[30px] border border-stone-200 bg-white shadow-sm md:block">
-        <table className="w-full text-left text-sm">
+      <div className="hidden overflow-x-auto rounded-[30px] border border-stone-200 bg-white shadow-sm md:block">
+        <table className="min-w-[1100px] w-full text-left text-sm">
           <thead className="bg-stone-50/50 text-stone-500">
             <tr>
               <th className="px-8 py-5 font-bold uppercase tracking-widest text-[10px]">代理人/登录邮箱</th>
               <th className="px-8 py-5 font-bold uppercase tracking-widest text-[10px]">联系微信</th>
               <th className="px-8 py-5 font-bold uppercase tracking-widest text-[10px]">专属注册码</th>
               <th className="px-8 py-5 font-bold uppercase tracking-widest text-[10px] text-center">已邀请人数</th>
+              <th className="px-8 py-5 font-bold uppercase tracking-widest text-[10px]">开通会员权限</th>
               <th className="px-8 py-5 font-bold uppercase tracking-widest text-[10px]">状态</th>
               <th className="px-8 py-5 font-bold uppercase tracking-widest text-[10px]">创建日期</th>
               <th className="px-8 py-5 font-bold uppercase tracking-widest text-[10px] text-right">操作</th>
@@ -287,14 +347,14 @@ export function AgentsPanel() {
           <tbody className="divide-y divide-stone-100">
             {loading && agents.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-8 py-20 text-center text-stone-400">
+                <td colSpan={8} className="px-8 py-20 text-center text-stone-400">
                   <RefreshCcw className="mx-auto mb-4 h-8 w-8 animate-spin opacity-20" />
                   正在获取数据...
                 </td>
               </tr>
             ) : agents.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-8 py-20 text-center text-stone-400">
+                <td colSpan={8} className="px-8 py-20 text-center text-stone-400">
                   目前没有任何代理商记录
                 </td>
               </tr>
@@ -323,6 +383,18 @@ export function AgentsPanel() {
                   </td>
                   <td className="px-8 py-5">
                     <span
+                      className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[11px] font-bold ${
+                        agent.canGrantMembership
+                          ? "border border-sky-100 bg-sky-50 text-sky-700"
+                          : "border border-stone-200 bg-stone-50 text-stone-500"
+                      }`}
+                    >
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      {agent.canGrantMembership ? "已开启" : "未开启"}
+                    </span>
+                  </td>
+                  <td className="px-8 py-5">
+                    <span
                       className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider ${
                         agent.status === "active"
                           ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
@@ -344,6 +416,17 @@ export function AgentsPanel() {
                         title="编辑姓名"
                       >
                         <Edit3 className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleToggleMembershipGrant(agent.id, agent.canGrantMembership)}
+                        className={`p-2.5 rounded-2xl border transition shadow-sm ${
+                          agent.canGrantMembership
+                            ? "bg-white border-sky-200 text-sky-600 hover:bg-sky-50"
+                            : "bg-white border-stone-200 text-slate-600 hover:bg-slate-50"
+                        }`}
+                        title={agent.canGrantMembership ? "关闭开通会员权限" : "开启开通会员权限"}
+                      >
+                        <ShieldCheck className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleToggleStatus(agent.id, agent.status)}
@@ -422,6 +505,19 @@ export function AgentsPanel() {
                   />
                 </div>
 
+                <label className="flex items-center justify-between gap-4 rounded-2xl border border-stone-200 bg-slate-50 px-5 py-4">
+                  <span>
+                    <span className="block text-sm font-bold text-slate-800">允许手动开通会员</span>
+                    <span className="mt-1 block text-xs text-slate-500">开启后，该代理可给名下用户开通会员。</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={formCanGrantMembership}
+                    onChange={(e) => setFormCanGrantMembership(e.target.checked)}
+                    className="h-5 w-5 rounded border-stone-300 text-slate-950"
+                  />
+                </label>
+
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-widest text-slate-400">初始登录密码</label>
                   <div className="relative">
@@ -492,6 +588,19 @@ export function AgentsPanel() {
                 />
               </div>
 
+              <label className="flex items-center justify-between gap-4 rounded-2xl border border-stone-200 bg-slate-50 px-5 py-4">
+                <span>
+                  <span className="block text-sm font-bold text-slate-800">允许手动开通会员</span>
+                  <span className="mt-1 block text-xs text-slate-500">仅允许该代理操作自己邀请码注册的用户。</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={formCanGrantMembership}
+                  onChange={(e) => setFormCanGrantMembership(e.target.checked)}
+                  className="h-5 w-5 rounded border-stone-300 text-slate-950"
+                />
+              </label>
+
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-3">
                 <div>
                   <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">登录账号</div>
@@ -515,7 +624,9 @@ export function AgentsPanel() {
                   disabled={
                     submitting ||
                     !formName.trim() ||
-                    (formName === currentAgent?.name && formContactWechat === (currentAgent?.contactWechat ?? ""))
+                    (formName === currentAgent?.name &&
+                      formContactWechat === (currentAgent?.contactWechat ?? "") &&
+                      formCanGrantMembership === Boolean(currentAgent?.canGrantMembership))
                   }
                   className="flex-[2] flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-6 py-4 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-40 transition shadow-lg shadow-slate-200"
                 >

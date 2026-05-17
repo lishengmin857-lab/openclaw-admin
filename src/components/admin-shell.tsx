@@ -90,6 +90,7 @@ export function AdminShell() {
     window.localStorage.removeItem("openclaw-admin-phone");
     window.localStorage.removeItem("openclaw-admin-role");
     window.localStorage.removeItem("openclaw-admin-invite");
+    window.localStorage.removeItem("openclaw-admin-can-grant-membership");
     router.replace("/login");
   }
 

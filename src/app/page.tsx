@@ -27,11 +27,24 @@ export default function HomePage() {
         }
         return response.json();
       })
-      .then((result: { admin: { displayName: string; phone: string; role: string; inviteCode?: string } }) => {
+      .then((result: {
+        admin: {
+          displayName: string;
+          phone: string;
+          role: string;
+          inviteCode?: string;
+          canGrantMembership?: boolean;
+        };
+      }) => {
         window.sessionStorage.setItem("openclaw-admin-auth", "ok");
         window.localStorage.setItem("openclaw-admin-name", result.admin.displayName);
         window.localStorage.setItem("openclaw-admin-phone", result.admin.phone);
         window.localStorage.setItem("openclaw-admin-role", result.admin.role);
+        if (result.admin.canGrantMembership) {
+          window.localStorage.setItem("openclaw-admin-can-grant-membership", "1");
+        } else {
+          window.localStorage.removeItem("openclaw-admin-can-grant-membership");
+        }
         if (result.admin.inviteCode) {
           window.localStorage.setItem("openclaw-admin-invite", result.admin.inviteCode);
         } else {
@@ -44,6 +57,7 @@ export default function HomePage() {
         window.localStorage.removeItem("openclaw-admin-token");
         window.localStorage.removeItem("openclaw-admin-name");
         window.localStorage.removeItem("openclaw-admin-phone");
+        window.localStorage.removeItem("openclaw-admin-can-grant-membership");
         router.replace("/login");
       });
   }, [router]);

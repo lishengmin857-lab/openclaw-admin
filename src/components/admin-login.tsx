@@ -52,7 +52,13 @@ export function AdminLogin() {
       const result = (await response.json()) as {
         error?: string;
         token?: string;
-        admin?: { displayName: string; phone: string; role: string; inviteCode?: string };
+        admin?: {
+          displayName: string;
+          phone: string;
+          role: string;
+          inviteCode?: string;
+          canGrantMembership?: boolean;
+        };
       };
 
       if (!response.ok || !result.token || !result.admin) {
@@ -68,6 +74,11 @@ export function AdminLogin() {
       window.localStorage.setItem("openclaw-admin-token", result.token);
       window.localStorage.setItem("openclaw-admin-name", result.admin.displayName);
       window.localStorage.setItem("openclaw-admin-role", result.admin.role);
+      if (result.admin.canGrantMembership) {
+        window.localStorage.setItem("openclaw-admin-can-grant-membership", "1");
+      } else {
+        window.localStorage.removeItem("openclaw-admin-can-grant-membership");
+      }
       if (result.admin.inviteCode) {
         window.localStorage.setItem("openclaw-admin-invite", result.admin.inviteCode);
       } else {
