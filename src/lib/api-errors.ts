@@ -11,6 +11,7 @@ const ERROR_MESSAGE_MAP: Record<string, string> = {
   CREATE_AGENT_FAILED: "创建代理失败",
   UPDATE_AGENT_FAILED: "更新代理失败",
   DELETE_AGENT_FAILED: "删除代理失败",
+  FETCH_OPERATION_LOGS_FAILED: "获取操作日志失败",
   CREATE_PLAN_FAILED: "创建套餐失败",
   UPDATE_PLAN_FAILED: "更新套餐失败",
   DELETE_PLAN_FAILED: "删除套餐失败",

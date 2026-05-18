@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { OverviewPanel } from "@/components/overview-panel";
+import { OperationLogsPanel } from "@/components/operation-logs-panel";
 import { OrdersPanel } from "@/components/orders-panel";
 import { QuotaFreePanel } from "@/components/quota-free-panel";
 import { RegistrationPolicyPanel } from "@/components/registration-policy-panel";
@@ -17,6 +18,7 @@ type AdminView =
   | "users"
   | "memberships"
   | "orders"
+  | "operationLogs"
   | "registration"
   | "quotaFree"
   | "settings"
@@ -34,6 +36,7 @@ const menuItems: MenuItem[] = [
   { key: "users", label: "用户管理" },
   { key: "memberships", label: "会员管理", badge: "Live" },
   { key: "orders", label: "订单记录", badge: "Live" },
+  { key: "operationLogs", label: "操作日志" },
   { key: "registration", label: "注册风控", badge: "Live" },
   { key: "quotaFree", label: "免费额度", badge: "Live" },
   { key: "settings", label: "系统设置", badge: "Live" },
@@ -262,6 +265,8 @@ function renderContent(activeView: AdminView) {
       return <UsersPanel mode="memberships" />;
     case "orders":
       return <OrdersPanel />;
+    case "operationLogs":
+      return <OperationLogsPanel />;
     case "settings":
       return <SettingsPanel />;
     case "registration":
