@@ -243,7 +243,7 @@ export function PlansPanel() {
               <MobileField label="价格" value={`${plan.priceLabel} 元`} />
               <MobileField label="文章" value={`${plan.textMonthlyLimit ?? plan.textDailyLimit * 30} 篇`} />
               <MobileField label="图片" value={`${plan.imageMonthlyLimit} 图`} />
-              <MobileField label="二次去 AI" value={`${plan.deAiMonthlyLimit ?? 0} 次`} />
+              <MobileField label="二次润色" value={`${plan.deAiMonthlyLimit ?? 0} 次`} />
               <MobileField label="公众号" value={`${plan.wechatAccountLimit > 500 ? "∞" : plan.wechatAccountLimit} 个`} />
             </div>
 
@@ -289,7 +289,7 @@ export function PlansPanel() {
                   <div className="flex gap-2">
                     <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-indigo-700 text-xs">{plan.textMonthlyLimit ?? plan.textDailyLimit * 30} 文</span>
                     <span className="rounded bg-amber-50 px-1.5 py-0.5 text-amber-700 text-xs">{plan.imageMonthlyLimit} 图</span>
-                    <span className="rounded bg-sky-50 px-1.5 py-0.5 text-sky-700 text-xs">二次 {plan.deAiMonthlyLimit ?? 0}</span>
+                    <span className="rounded bg-sky-50 px-1.5 py-0.5 text-sky-700 text-xs">润色 {plan.deAiMonthlyLimit ?? 0}</span>
                     <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-emerald-700 text-xs">{plan.wechatAccountLimit > 500 ? '∞' : plan.wechatAccountLimit} 号</span>
                   </div>
                 </td>
@@ -413,7 +413,7 @@ export function PlansPanel() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">{"\u4e8c\u6b21\u53bb AI"}</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">二次润色</label>
                   <input
                     type="number"
                     className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white transition"

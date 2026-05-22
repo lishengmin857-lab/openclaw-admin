@@ -120,7 +120,7 @@ export function QuotaFreePanel() {
           <p className="mt-3 text-2xl font-semibold text-slate-950">{form.imageLimit} 次</p>
         </div>
         <div className="rounded-[24px] border border-stone-200 bg-gradient-to-br from-stone-50 to-white p-5 shadow-sm">
-          <p className="text-sm text-slate-500">二次去 AI 额度</p>
+          <p className="text-sm text-slate-500">二次润色额度</p>
           <p className="mt-3 text-2xl font-semibold text-slate-950">{form.deAiLimit} 次</p>
         </div>
       </section>
@@ -188,7 +188,7 @@ export function QuotaFreePanel() {
             />
           </label>
           <label className="block space-y-2">
-            <span className="text-sm font-medium text-slate-700">二次去 AI 额度上限（次）</span>
+            <span className="text-sm font-medium text-slate-700">二次润色额度上限（次）</span>
             <input
               type="number"
               min={0}
