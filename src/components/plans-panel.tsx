@@ -156,7 +156,7 @@ export function PlansPanel() {
       });
 
       if (!res.ok) throw new Error("Update failed");
-      
+
       toast.success("套餐更新成功");
       setIsModalOpen(false);
       fetchPlans();
@@ -205,15 +205,15 @@ export function PlansPanel() {
               <Plus className="h-4 w-4" />
               新增套餐
             </button>
-          <button
-            type="button"
-            onClick={fetchPlans}
-            disabled={loading}
-            className="flex items-center gap-2 rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-stone-400 hover:bg-stone-50"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            刷新
-          </button>
+            <button
+              type="button"
+              onClick={fetchPlans}
+              disabled={loading}
+              className="flex items-center gap-2 rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-stone-400 hover:bg-stone-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              刷新
+            </button>
           </div>
         </div>
       </section>
@@ -232,9 +232,8 @@ export function PlansPanel() {
                 <p className="mt-1 break-all font-mono text-xs text-slate-500">{plan.code}</p>
                 <p className="mt-2 text-xs font-semibold text-slate-500">{getPlanCategoryLabel(plan)}</p>
               </div>
-              <span className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                plan.isActive ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
-              }`}>
+              <span className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${plan.isActive ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+                }`}>
                 {plan.isActive ? "已激活" : "已禁用"}
               </span>
             </div>
@@ -243,7 +242,7 @@ export function PlansPanel() {
               <MobileField label="价格" value={`${plan.priceLabel} 元`} />
               <MobileField label="文章" value={`${plan.textMonthlyLimit ?? plan.textDailyLimit * 30} 篇`} />
               <MobileField label="图片" value={`${plan.imageMonthlyLimit} 图`} />
-              <MobileField label="二次润色" value={`${plan.deAiMonthlyLimit ?? 0} 次`} />
+              <MobileField label="去AI味" value={`${plan.deAiMonthlyLimit ?? 0} 次`} />
               <MobileField label="公众号" value={`${plan.wechatAccountLimit > 500 ? "∞" : plan.wechatAccountLimit} 个`} />
             </div>
 
@@ -294,9 +293,8 @@ export function PlansPanel() {
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                    plan.isActive ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
-                  }`}>
+                  <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${plan.isActive ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+                    }`}>
                     {plan.isActive ? "已激活" : "已禁用"}
                   </span>
                 </td>
@@ -308,7 +306,7 @@ export function PlansPanel() {
                     <Edit2 className="h-3.5 w-3.5" />
                     编辑
                   </button>
-                                  <button
+                  <button
                     onClick={() => void handleDelete(plan)}
                     className="mt-2 flex items-center gap-1.5 text-rose-600 hover:text-rose-800 font-medium"
                   >
@@ -346,7 +344,7 @@ export function PlansPanel() {
                     className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white transition"
                     value={editingPlan.code}
                     disabled={modalMode === "edit"}
-                    onChange={e => setEditingPlan({...editingPlan, code: e.target.value})}
+                    onChange={e => setEditingPlan({ ...editingPlan, code: e.target.value })}
                     placeholder="如 basic_month"
                   />
                 </div>
@@ -355,7 +353,7 @@ export function PlansPanel() {
                   <select
                     className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white transition"
                     value={editingPlan.name}
-                    onChange={e => setEditingPlan({...editingPlan, name: e.target.value})}
+                    onChange={e => setEditingPlan({ ...editingPlan, name: e.target.value })}
                   >
                     {PLAN_NAME_OPTIONS.map((name) => (
                       <option key={name} value={name}>{name}</option>
@@ -368,7 +366,7 @@ export function PlansPanel() {
                     type="number"
                     className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white transition"
                     value={editingPlan.priceCents}
-                    onChange={e => setEditingPlan({...editingPlan, priceCents: parseInt(e.target.value) || 0})}
+                    onChange={e => setEditingPlan({ ...editingPlan, priceCents: parseInt(e.target.value) || 0 })}
                   />
                 </div>
                 <div>
@@ -399,7 +397,7 @@ export function PlansPanel() {
                     type="number"
                     className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white transition"
                     value={editingPlan.textMonthlyLimit ?? editingPlan.textDailyLimit * 30}
-                    onChange={e => setEditingPlan({...editingPlan, textMonthlyLimit: parseInt(e.target.value) || 0})}
+                    onChange={e => setEditingPlan({ ...editingPlan, textMonthlyLimit: parseInt(e.target.value) || 0 })}
                   />
                 </div>
                 <div>
@@ -409,16 +407,16 @@ export function PlansPanel() {
                     className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white transition"
                     value={editingPlan.imageMonthlyLimit}
                     disabled={getPlanCategory(editingPlan) === "text_only"}
-                    onChange={e => setEditingPlan({...editingPlan, imageMonthlyLimit: parseInt(e.target.value) || 0})}
+                    onChange={e => setEditingPlan({ ...editingPlan, imageMonthlyLimit: parseInt(e.target.value) || 0 })}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">二次润色</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">去AI味</label>
                   <input
                     type="number"
                     className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white transition"
                     value={editingPlan.deAiMonthlyLimit ?? 0}
-                    onChange={e => setEditingPlan({...editingPlan, deAiMonthlyLimit: parseInt(e.target.value) || 0})}
+                    onChange={e => setEditingPlan({ ...editingPlan, deAiMonthlyLimit: parseInt(e.target.value) || 0 })}
                   />
                 </div>
                 <div>
@@ -427,7 +425,7 @@ export function PlansPanel() {
                     type="number"
                     className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white transition"
                     value={editingPlan.wechatAccountLimit}
-                    onChange={e => setEditingPlan({...editingPlan, wechatAccountLimit: parseInt(e.target.value) || 0})}
+                    onChange={e => setEditingPlan({ ...editingPlan, wechatAccountLimit: parseInt(e.target.value) || 0 })}
                   />
                 </div>
               </div>
@@ -438,7 +436,7 @@ export function PlansPanel() {
                   type="text"
                   className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white transition"
                   value={editingPlan.tagline}
-                  onChange={e => setEditingPlan({...editingPlan, tagline: e.target.value})}
+                  onChange={e => setEditingPlan({ ...editingPlan, tagline: e.target.value })}
                 />
               </div>
 
@@ -449,7 +447,7 @@ export function PlansPanel() {
                     <input
                       type="radio"
                       checked={editingPlan.isActive}
-                      onChange={() => setEditingPlan({...editingPlan, isActive: true})}
+                      onChange={() => setEditingPlan({ ...editingPlan, isActive: true })}
                       className="accent-indigo-600"
                     />
                     <span className="text-sm text-slate-700">激活</span>
@@ -458,7 +456,7 @@ export function PlansPanel() {
                     <input
                       type="radio"
                       checked={!editingPlan.isActive}
-                      onChange={() => setEditingPlan({...editingPlan, isActive: false})}
+                      onChange={() => setEditingPlan({ ...editingPlan, isActive: false })}
                       className="accent-indigo-600"
                     />
                     <span className="text-sm text-slate-700">禁用</span>
@@ -472,7 +470,7 @@ export function PlansPanel() {
                   rows={4}
                   className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white transition"
                   value={editingPlan.features.join("\n")}
-                  onChange={e => setEditingPlan({...editingPlan, features: e.target.value.split("\n")})}
+                  onChange={e => setEditingPlan({ ...editingPlan, features: e.target.value.split("\n") })}
                 />
               </div>
 

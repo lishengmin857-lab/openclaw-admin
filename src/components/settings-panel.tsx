@@ -2,19 +2,135 @@
 
 import { useEffect, useState } from "react";
 
+const DEFAULT_ARK_BASE_URL = "https://ark.cn-beijing.volces.com/api/v3";
+const DEFAULT_MIMO_BASE_URL = "https://api.xiaomimimo.com/v1";
+
+const TEXT_MODEL_OPTIONS = [
+  {
+    provider: "doubao",
+    label: "豆包",
+    model: "doubao-seed-2-0-pro-260215",
+    baseUrl: DEFAULT_ARK_BASE_URL,
+    endpoint: "/responses",
+  },
+  {
+    provider: "deepseek",
+    label: "DeepSeek",
+    model: "deepseek-v3-2-251201",
+    baseUrl: DEFAULT_ARK_BASE_URL,
+    endpoint: "/responses",
+  },
+  {
+    provider: "kimi",
+    label: "Kimi",
+    model: "kimi-k2-thinking-251104",
+    baseUrl: DEFAULT_ARK_BASE_URL,
+    endpoint: "/responses",
+  },
+  {
+    provider: "mimo",
+    label: "小米 MiMo",
+    model: "mimo-v2.5-pro",
+    baseUrl: DEFAULT_MIMO_BASE_URL,
+    endpoint: "/chat/completions",
+  },
+] as const;
+
+type TextProvider = (typeof TEXT_MODEL_OPTIONS)[number]["provider"];
+
 type ImageSettings = {
   apiKey: string;
   model: string;
   baseUrl: string;
 };
 
-type TextSettings = {
+type TextProviderConfig = {
   apiKey: string;
   model: string;
   baseUrl: string;
+};
+
+type TextSettings = TextProviderConfig & {
+  provider: TextProvider;
+  providers: Record<TextProvider, TextProviderConfig>;
   enableWebSearch: boolean;
   reasoningEffort: string;
 };
+
+type RawTextSettings = Partial<Omit<TextSettings, "provider" | "providers">> & {
+  provider?: string;
+  providers?: Partial<Record<TextProvider, Partial<TextProviderConfig>>>;
+};
+
+function getTextModelOption(provider: string) {
+  return TEXT_MODEL_OPTIONS.find((option) => option.provider === provider) ?? TEXT_MODEL_OPTIONS[0];
+}
+
+function inferTextProvider(provider: string | undefined, model: string): TextProvider {
+  if (provider === "doubao" || provider === "deepseek" || provider === "kimi" || provider === "mimo") {
+    return provider;
+  }
+  const normalizedModel = model.trim().toLowerCase();
+  if (normalizedModel.startsWith("deepseek")) return "deepseek";
+  if (normalizedModel.startsWith("kimi") || normalizedModel.includes("moonshot")) return "kimi";
+  if (normalizedModel.startsWith("mimo")) return "mimo";
+  return "doubao";
+}
+
+function getDefaultProviderConfig(provider: TextProvider): TextProviderConfig {
+  const option = getTextModelOption(provider);
+  return {
+    apiKey: "",
+    model: option.model,
+    baseUrl: option.baseUrl,
+  };
+}
+
+function normalizeTextSettings(settings: RawTextSettings = {}): TextSettings {
+  const model = settings.model?.trim() || "";
+  const provider = inferTextProvider(settings.provider, model);
+  const rawProviders = settings.providers ?? {};
+  const providers = TEXT_MODEL_OPTIONS.reduce(
+    (result, option) => {
+      const providerConfig = rawProviders[option.provider] ?? {};
+      const topLevelActiveConfig = option.provider === provider;
+
+      result[option.provider] = {
+        apiKey: providerConfig.apiKey ?? (topLevelActiveConfig ? settings.apiKey ?? "" : ""),
+        model:
+          providerConfig.model?.trim() ||
+          (topLevelActiveConfig ? model : "") ||
+          option.model,
+        baseUrl:
+          providerConfig.baseUrl?.trim() ||
+          (topLevelActiveConfig ? settings.baseUrl?.trim() || "" : "") ||
+          option.baseUrl,
+      };
+      return result;
+    },
+    {} as Record<TextProvider, TextProviderConfig>,
+  );
+  const activeConfig = providers[provider] ?? getDefaultProviderConfig(provider);
+
+  return {
+    provider,
+    providers,
+    ...activeConfig,
+    enableWebSearch:
+      typeof settings.enableWebSearch === "boolean"
+        ? settings.enableWebSearch
+        : provider === "kimi" || provider === "deepseek" || provider === "mimo",
+    reasoningEffort: settings.reasoningEffort?.trim() || "medium",
+  };
+}
+
+function withActiveTextConfig(settings: TextSettings): TextSettings {
+  const activeConfig = settings.providers[settings.provider] ?? getDefaultProviderConfig(settings.provider);
+  return {
+    ...settings,
+    ...activeConfig,
+  };
+}
 
 function getToken() {
   return typeof window === "undefined" ? "" : (window.localStorage.getItem("openclaw-admin-token") ?? "");
@@ -34,15 +150,9 @@ export function SettingsPanel() {
   const [imageForm, setImageForm] = useState<ImageSettings>({
     apiKey: "",
     model: "",
-    baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+    baseUrl: DEFAULT_ARK_BASE_URL,
   });
-  const [textForm, setTextForm] = useState<TextSettings>({
-    apiKey: "",
-    model: "",
-    baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
-    enableWebSearch: false,
-    reasoningEffort: "medium",
-  });
+  const [textForm, setTextForm] = useState<TextSettings>(normalizeTextSettings());
   const [loading, setLoading] = useState(true);
   const [imageSaving, setImageSaving] = useState(false);
   const [textSaving, setTextSaving] = useState(false);
@@ -59,9 +169,9 @@ export function SettingsPanel() {
         fetch("/api/admin/settings/text-generation", { headers: authHeader(), cache: "no-store" }),
       ]);
       const imageData = (await imageRes.json()) as { settings?: ImageSettings; error?: string };
-      const textData = (await textRes.json()) as { settings?: TextSettings; error?: string };
+      const textData = (await textRes.json()) as { settings?: RawTextSettings; error?: string };
       if (imageData.settings) setImageForm(imageData.settings);
-      if (textData.settings) setTextForm(textData.settings);
+      if (textData.settings) setTextForm(normalizeTextSettings(textData.settings));
       const errMsg =
         (!imageRes.ok ? (imageData.error ?? "图片配置加载失败") : "") ||
         (!textRes.ok ? (textData.error ?? "文本配置加载失败") : "");
@@ -74,8 +184,43 @@ export function SettingsPanel() {
   }
 
   useEffect(() => {
-    void loadSettings();
+    const timer = window.setTimeout(() => {
+      void loadSettings();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
+
+  function handleTextProviderChange(provider: TextProvider) {
+    setTextForm((form) =>
+      withActiveTextConfig({
+        ...form,
+        provider,
+        providers: {
+          ...form.providers,
+          [provider]: form.providers[provider] ?? getDefaultProviderConfig(provider),
+        },
+        enableWebSearch:
+          provider === "kimi" || provider === "deepseek" || provider === "mimo"
+            ? true
+            : form.enableWebSearch,
+      }),
+    );
+  }
+
+  function updateActiveTextConfig(updates: Partial<TextProviderConfig>) {
+    setTextForm((form) =>
+      withActiveTextConfig({
+        ...form,
+        providers: {
+          ...form.providers,
+          [form.provider]: {
+            ...(form.providers[form.provider] ?? getDefaultProviderConfig(form.provider)),
+            ...updates,
+          },
+        },
+      }),
+    );
+  }
 
   async function handleSaveImage() {
     setImageSaving(true);
@@ -106,11 +251,11 @@ export function SettingsPanel() {
       const response = await fetch("/api/admin/settings/text-generation", {
         method: "PUT",
         headers: { "Content-Type": "application/json", ...authHeader() },
-        body: JSON.stringify(textForm),
+        body: JSON.stringify(withActiveTextConfig(textForm)),
       });
-      const data = (await response.json()) as { settings?: TextSettings; error?: string };
+      const data = (await response.json()) as { settings?: RawTextSettings; error?: string };
       if (!response.ok) { setError(data.error ?? "SAVE_FAILED"); return; }
-      if (data.settings) setTextForm(data.settings);
+      if (data.settings) setTextForm(normalizeTextSettings(data.settings));
       setTextMessage("文本模型配置已保存");
     } catch {
       setError("保存失败");
@@ -122,6 +267,8 @@ export function SettingsPanel() {
   if (loading) {
     return <div className="py-20 text-center text-sm text-slate-500">正在加载系统配置...</div>;
   }
+
+  const activeTextConfig = textForm.providers[textForm.provider] ?? getDefaultProviderConfig(textForm.provider);
 
   return (
     <div className="space-y-10">
@@ -139,9 +286,10 @@ export function SettingsPanel() {
           </p>
         </div>
 
-        <section className="grid gap-4 md:grid-cols-3">
-          <StatCard label="当前文本模型" value={textForm.model || "未配置"} />
-          <StatCard label="当前 Key" value={maskValue(textForm.apiKey)} />
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <StatCard label="当前模型选择" value={getTextModelOption(textForm.provider).label} />
+          <StatCard label="当前文本模型" value={activeTextConfig.model || "未配置"} compact />
+          <StatCard label="当前 Key" value={maskValue(activeTextConfig.apiKey)} />
           <StatCard label="联网搜索默认值" value={textForm.enableWebSearch ? "开启" : "关闭"} />
           <StatCard label="思考深度 (Reasoning)" value={
             textForm.reasoningEffort === "high" ? "高" :
@@ -151,15 +299,29 @@ export function SettingsPanel() {
         </section>
 
         <section className="rounded-[28px] border border-stone-200 bg-white p-6 shadow-sm space-y-5">
-          <Field label="文本 API Key" value={textForm.apiKey}
-            onChange={(v) => setTextForm((f) => ({ ...f, apiKey: v }))}
-            placeholder="填写文章生成使用的豆包 API Key" password />
-          <Field label="文本模型名称" value={textForm.model}
-            onChange={(v) => setTextForm((f) => ({ ...f, model: v }))}
-            placeholder="例如：doubao-seed-2-0-pro-260215" />
-          <Field label="文本接口地址" value={textForm.baseUrl}
-            onChange={(v) => setTextForm((f) => ({ ...f, baseUrl: v }))}
-            placeholder="https://ark.cn-beijing.volces.com/api/v3" />
+          <div className="space-y-2">
+            <span className="text-sm font-medium text-slate-700">模型选择</span>
+            <select
+              value={textForm.provider}
+              onChange={(event) => handleTextProviderChange(event.target.value as TextProvider)}
+              className="w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-amber-400"
+            >
+              {TEXT_MODEL_OPTIONS.map((option) => (
+                <option key={option.provider} value={option.provider}>
+                  {option.label} - {option.model}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Field label={`${getTextModelOption(textForm.provider).label} API Key`} value={activeTextConfig.apiKey}
+            onChange={(v) => updateActiveTextConfig({ apiKey: v })}
+            placeholder="填写文章生成使用的 Ark API Key" password />
+          <Field label={`${getTextModelOption(textForm.provider).label} 模型名称 / 接入点 ID`} value={activeTextConfig.model}
+            onChange={(v) => updateActiveTextConfig({ model: v })}
+            placeholder="填写方舟控制台实际可调用的模型名或接入点 ID" />
+          <Field label={`${getTextModelOption(textForm.provider).label} 接口地址`} value={activeTextConfig.baseUrl}
+            onChange={(v) => updateActiveTextConfig({ baseUrl: v })}
+            placeholder={`${getTextModelOption(textForm.provider).baseUrl}${getTextModelOption(textForm.provider).endpoint}`} />
           <label className="flex items-center gap-3 cursor-pointer select-none">
             <input
               type="checkbox"
@@ -173,8 +335,9 @@ export function SettingsPanel() {
             <span className="text-sm font-medium text-slate-700">推理深度 (Reasoning Effort)</span>
             <select
               value={textForm.reasoningEffort}
+              disabled={textForm.provider !== "doubao" && textForm.provider !== "mimo"}
               onChange={(e) => setTextForm((f) => ({ ...f, reasoningEffort: e.target.value }))}
-              className="w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-amber-400 bg-white"
+              className="w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-amber-400 bg-white disabled:bg-stone-100 disabled:text-slate-400"
             >
               <option value="high">高 (high) - 深度分析，适合复杂问题</option>
               <option value="medium">中 (medium) - 均衡模式，兼顾速度与深度</option>
