@@ -12,6 +12,7 @@ import { SettingsPanel } from "@/components/settings-panel";
 import { UsersPanel } from "@/components/users-panel";
 import { AgentsPanel } from "@/components/agents-panel";
 import { PlansPanel } from "@/components/plans-panel";
+import { ActivationCodesPanel } from "@/components/activation-codes-panel";
 
 type AdminView =
   | "overview"
@@ -23,7 +24,8 @@ type AdminView =
   | "quotaFree"
   | "settings"
   | "agents"
-  | "plans";
+  | "plans"
+  | "activationCodes";
 
 type MenuItem = {
   key: AdminView;
@@ -42,6 +44,7 @@ const menuItems: MenuItem[] = [
   { key: "settings", label: "系统设置", badge: "Live" },
   { key: "agents", label: "代理管理" },
   { key: "plans", label: "套餐管理" },
+  { key: "activationCodes", label: "激活码管理" },
 ];
 
 export function AdminShell() {
@@ -66,9 +69,13 @@ export function AdminShell() {
 
   const filteredMenuItems = useMemo(() => {
     if (adminRole === "agent") {
-      // 代理商允许查看：仪表盘、用户列表、订单记录
+      // 代理商允许查看：仪表盘、用户列表、订单记录、激活码管理
       return menuItems.filter(
-        (item) => item.key === "overview" || item.key === "users" || item.key === "orders",
+        (item) =>
+          item.key === "overview" ||
+          item.key === "users" ||
+          item.key === "orders" ||
+          item.key === "activationCodes",
       );
     }
     return menuItems;
@@ -277,6 +284,8 @@ function renderContent(activeView: AdminView) {
       return <AgentsPanel />;
     case "plans":
       return <PlansPanel />;
+    case "activationCodes":
+      return <ActivationCodesPanel />;
     case "overview":
       return <OverviewPanel />;
     default:
