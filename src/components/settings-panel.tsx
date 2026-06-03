@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 const DEFAULT_ARK_BASE_URL = "https://ark.cn-beijing.volces.com/api/v3";
+const DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com";
 const DEFAULT_MIMO_BASE_URL = "https://api.xiaomimimo.com/v1";
 
 const TEXT_MODEL_OPTIONS = [
@@ -16,9 +17,9 @@ const TEXT_MODEL_OPTIONS = [
   {
     provider: "deepseek",
     label: "DeepSeek",
-    model: "deepseek-v3-2-251201",
-    baseUrl: DEFAULT_ARK_BASE_URL,
-    endpoint: "/responses",
+    model: "deepseek-v4-pro",
+    baseUrl: DEFAULT_DEEPSEEK_BASE_URL,
+    endpoint: "/chat/completions",
   },
   {
     provider: "kimi",
@@ -119,7 +120,7 @@ function normalizeTextSettings(settings: RawTextSettings = {}): TextSettings {
     enableWebSearch:
       typeof settings.enableWebSearch === "boolean"
         ? settings.enableWebSearch
-        : provider === "kimi" || provider === "deepseek" || provider === "mimo",
+        : provider === "kimi" || provider === "mimo",
     reasoningEffort: settings.reasoningEffort?.trim() || "medium",
   };
 }
@@ -200,7 +201,7 @@ export function SettingsPanel() {
           [provider]: form.providers[provider] ?? getDefaultProviderConfig(provider),
         },
         enableWebSearch:
-          provider === "kimi" || provider === "deepseek" || provider === "mimo"
+          provider === "kimi" || provider === "mimo"
             ? true
             : form.enableWebSearch,
       }),
@@ -293,6 +294,7 @@ export function SettingsPanel() {
           <StatCard label="联网搜索默认值" value={textForm.enableWebSearch ? "开启" : "关闭"} />
           <StatCard label="思考深度 (Reasoning)" value={
             textForm.reasoningEffort === "high" ? "高" :
+            textForm.reasoningEffort === "max" ? "最高" :
             textForm.reasoningEffort === "low" ? "低" :
             textForm.reasoningEffort === "minimal" ? "关闭" : "中 (默认)"
           } />
@@ -335,11 +337,12 @@ export function SettingsPanel() {
             <span className="text-sm font-medium text-slate-700">推理深度 (Reasoning Effort)</span>
             <select
               value={textForm.reasoningEffort}
-              disabled={textForm.provider !== "doubao" && textForm.provider !== "mimo"}
+              disabled={textForm.provider !== "doubao" && textForm.provider !== "deepseek" && textForm.provider !== "mimo"}
               onChange={(e) => setTextForm((f) => ({ ...f, reasoningEffort: e.target.value }))}
               className="w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-amber-400 bg-white disabled:bg-stone-100 disabled:text-slate-400"
             >
               <option value="high">高 (high) - 深度分析，适合复杂问题</option>
+              <option value="max">最高 (max) - DeepSeek v4 pro 最高思考强度</option>
               <option value="medium">中 (medium) - 均衡模式，兼顾速度与深度</option>
               <option value="low">低 (low) - 轻量思考，侧重快速响应</option>
               <option value="minimal">关闭 (minimal) - 关闭思考，直接回答</option>
