@@ -13,6 +13,7 @@ import { UsersPanel } from "@/components/users-panel";
 import { AgentsPanel } from "@/components/agents-panel";
 import { PlansPanel } from "@/components/plans-panel";
 import { ActivationCodesPanel } from "@/components/activation-codes-panel";
+import { AiCallStatsPanel } from "@/components/ai-call-stats-panel";
 
 type AdminView =
   | "overview"
@@ -22,6 +23,7 @@ type AdminView =
   | "operationLogs"
   | "registration"
   | "quotaFree"
+  | "aiCallStats"
   | "settings"
   | "agents"
   | "plans"
@@ -41,6 +43,7 @@ const menuItems: MenuItem[] = [
   { key: "operationLogs", label: "操作日志" },
   { key: "registration", label: "注册风控", badge: "Live" },
   { key: "quotaFree", label: "免费额度", badge: "Live" },
+  { key: "aiCallStats", label: "调用统计", badge: "New" },
   { key: "settings", label: "系统设置", badge: "Live" },
   { key: "agents", label: "代理管理" },
   { key: "plans", label: "套餐管理" },
@@ -280,6 +283,8 @@ function renderContent(activeView: AdminView) {
       return <RegistrationPolicyPanel />;
     case "quotaFree":
       return <QuotaFreePanel />;
+    case "aiCallStats":
+      return <AiCallStatsPanel />;
     case "agents":
       return <AgentsPanel />;
     case "plans":
