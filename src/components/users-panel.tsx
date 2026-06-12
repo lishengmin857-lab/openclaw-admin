@@ -285,7 +285,7 @@ function UserActionPanel({
         </div>
       )}
 
-      {isSuperAdmin && user.membership?.isActive && (
+      {(isSuperAdmin || canGrantMembership) && user.membership?.isActive && (
         <ConfirmAction
           type="button"
           onConfirm={revokeMembership}
